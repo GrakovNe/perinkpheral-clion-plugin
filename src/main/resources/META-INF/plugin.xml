@@ -1,0 +1,57 @@
+<idea-plugin>
+    <id>org.perinkpheral.clion</id>
+    <name>perINKpheral</name>
+    <vendor url="https://github.com/GrakovNe/perinkpheral">GrakovNe</vendor>
+    <description><![CDATA[
+        <p>Development tools for the perINKpheral desk display.</p>
+        <ul>
+            <li>Toolchain setup: SDK checkout and wasi-sdk are downloaded on request.</li>
+            <li>Run configuration: build an application, upload it and restart the device into it.</li>
+            <li>Device tool window: live screen, buttons, log and status.</li>
+            <li>Validation and completion for <code>manifest.json</code>.</li>
+            <li>Firmware upload over the network and over USB.</li>
+        </ul>
+    ]]></description>
+
+    <depends>com.intellij.modules.platform</depends>
+    <depends>com.intellij.modules.json</depends>
+
+    <extensions defaultExtensionNs="com.intellij">
+        <applicationConfigurable parentId="tools"
+                                 instance="org.perinkpheral.clion.settings.PerinkpheralConfigurable"
+                                 id="org.perinkpheral.clion.settings"
+                                 displayName="perINKpheral"/>
+        <toolWindow id="perINKpheral" anchor="right" icon="/META-INF/pluginIcon.svg"
+                    factoryClass="org.perinkpheral.clion.device.DeviceToolWindowFactory"/>
+        <configurationType implementation="org.perinkpheral.clion.run.AppRunConfigurationType"/>
+        <runConfigurationProducer implementation="org.perinkpheral.clion.run.AppRunConfigurationProducer"/>
+        <notificationGroup id="perINKpheral" displayType="BALLOON"/>
+    </extensions>
+
+    <extensions defaultExtensionNs="JavaScript.JsonSchema">
+        <ProviderFactory implementation="org.perinkpheral.clion.manifest.ManifestSchemaProviderFactory"/>
+    </extensions>
+
+    <actions>
+        <group id="org.perinkpheral.clion.Menu" text="perINKpheral" popup="true">
+            <add-to-group group-id="ToolsMenu" anchor="last"/>
+            <action id="org.perinkpheral.clion.SetUpToolchain"
+                    class="org.perinkpheral.clion.toolchain.SetUpToolchainAction"
+                    text="Set Up Toolchain"
+                    description="Download the SDK and wasi-sdk if they are missing"/>
+            <action id="org.perinkpheral.clion.NewApplication"
+                    class="org.perinkpheral.clion.run.NewApplicationAction"
+                    text="New Application..."
+                    description="Create an application folder from the SDK sample"/>
+            <separator/>
+            <action id="org.perinkpheral.clion.FlashNetwork"
+                    class="org.perinkpheral.clion.firmware.FlashOverNetworkAction"
+                    text="Upload Firmware over Network"
+                    description="Send firmware/build/perinkpheral.bin to the device"/>
+            <action id="org.perinkpheral.clion.FlashUsb"
+                    class="org.perinkpheral.clion.firmware.FlashOverUsbAction"
+                    text="Upload Firmware over USB..."
+                    description="Write the firmware image to the first slot with esptool; settings partitions are not touched"/>
+        </group>
+    </actions>
+</idea-plugin>

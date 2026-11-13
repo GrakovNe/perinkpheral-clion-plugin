@@ -1,0 +1,143 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "perINKpheral application manifest",
+  "type": "object",
+  "required": ["name", "title", "version", "abi"],
+  "definitions": {
+    "settingKey": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 15,
+      "pattern": "^[!-~]+$"
+    }
+  },
+  "properties": {
+    "name": {
+      "description": "Folder name, catalog key and store namespace. 1-13 of a-z, 0-9, '-', '_'.",
+      "type": "string",
+      "pattern": "^[a-z0-9_-]{1,13}$"
+    },
+    "title": {
+      "description": "Menu title. 23 characters at most.",
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 23
+    },
+    "version": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 15
+    },
+    "abi": {
+      "description": "Host API version the application is built for.",
+      "const": 2
+    },
+    "fullscreen": {
+      "description": "true: 400x300 without the host header. false: 400x260 under the header.",
+      "type": "boolean",
+      "default": false
+    },
+    "system": {
+      "description": "Request for the system API (sys_* calls).",
+      "type": "boolean",
+      "default": false
+    },
+    "icon": {
+      "description": "11 rows of 11 characters: '#' ink, '.' paper.",
+      "type": "array",
+      "minItems": 11,
+      "maxItems": 11,
+      "items": { "type": "string", "pattern": "^[#.]{11}$" }
+    },
+    "polls": {
+      "description": "Requests the host repeats. The application receives each by its index.",
+      "type": "array",
+      "maxItems": 4,
+      "items": {
+        "type": "object",
+        "required": ["url", "every"],
+        "properties": {
+          "url": {
+            "description": "http(s) address. {{key}} is replaced by the stored setting; a url or link setting may stand at the start.",
+            "type": "string",
+            "maxLength": 511,
+            "pattern": "^(https?://|\\{\\{)"
+          },
+          "every": {
+            "description": "Seconds, 10 to 86400, or \"{{key}}\" of a setting that holds the interval (\"15 min\", \"1 h\").",
+            "oneOf": [
+              { "type": "integer", "minimum": 10, "maximum": 86400 },
+              { "type": "string", "pattern": "^\\{\\{[!-~]{1,15}\\}\\}$" }
+            ]
+          },
+          "headers": {
+            "type": "object",
+            "maxProperties": 4,
+            "propertyNames": { "maxLength": 31 },
+            "additionalProperties": { "type": "string", "maxLength": 255 }
+          },
+          "pick": {
+            "description": "JSON paths the host extracts, delivered through app_on_values().",
+            "type": "array",
+            "maxItems": 16,
+            "items": { "type": "string", "minLength": 1, "maxLength": 63 }
+          }
+        }
+      }
+    },
+    "hosts": {
+      "description": "Hosts http_request() may address. \"{{key}}\" names a url or link setting.",
+      "type": "array",
+      "maxItems": 4,
+      "items": { "type": "string", "minLength": 1, "maxLength": 63 }
+    },
+    "settings": {
+      "description": "Fields of the settings form on the device page. Values are read with kv_get() by key.",
+      "type": "array",
+      "maxItems": 8,
+      "items": {
+        "type": "object",
+        "required": ["key", "type", "title"],
+        "properties": {
+          "key": { "$ref": "#/definitions/settingKey" },
+          "type": {
+            "enum": ["text", "secret", "number", "choice", "toggle", "place", "url", "link"]
+          },
+          "title": { "type": "string", "minLength": 1, "maxLength": 31 },
+          "help": { "type": "string", "maxLength": 95 },
+          "default": { "type": "string", "maxLength": 255 },
+          "options": {
+            "type": "array",
+            "minItems": 1,
+            "maxItems": 8,
+            "items": { "type": "string", "minLength": 1, "maxLength": 23 }
+          },
+          "latitude": { "$ref": "#/definitions/settingKey" },
+          "longitude": { "$ref": "#/definitions/settingKey" }
+        },
+        "allOf": [
+          {
+            "if": { "properties": { "type": { "const": "choice" } } },
+            "then": { "required": ["options"] },
+            "else": { "not": { "required": ["options"] } }
+          },
+          {
+            "if": { "properties": { "type": { "const": "place" } } },
+            "then": { "required": ["latitude", "longitude"] }
+          }
+        ]
+      }
+    },
+    "intents": {
+      "description": "Events delivered through app_on_intent().",
+      "type": "array",
+      "uniqueItems": true,
+      "items": { "enum": ["time_changed", "network_up", "started"] }
+    },
+    "companion": {
+      "description": "Address of the companion page.",
+      "type": "string",
+      "pattern": "^https://"
+    }
+  }
+}

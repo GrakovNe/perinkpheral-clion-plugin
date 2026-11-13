@@ -1,0 +1,35 @@
+plugins {
+    id("org.jetbrains.kotlin.jvm")
+    id("org.jetbrains.intellij.platform")
+}
+
+group = providers.gradleProperty("pluginGroup").get()
+version = providers.gradleProperty("pluginVersion").get()
+
+kotlin {
+    jvmToolchain(21)
+}
+
+dependencies {
+    intellijPlatform {
+        // -PclionPath=/Applications/CLion.app builds against an installed CLion and downloads nothing.
+        val installed = providers.gradleProperty("clionPath").orNull
+        if (installed != null) {
+            local(installed)
+        } else {
+            clion(providers.gradleProperty("platformVersion").get())
+        }
+        bundledPlugin("com.intellij.modules.json")
+    }
+}
+
+intellijPlatform {
+    pluginConfiguration {
+        ideaVersion {
+            sinceBuild = providers.gradleProperty("pluginSinceBuild")
+            untilBuild = provider { null }
+        }
+    }
+    buildSearchableOptions = false
+    instrumentCode = false
+}
