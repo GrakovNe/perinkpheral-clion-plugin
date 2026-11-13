@@ -3,7 +3,7 @@
 # perINKpheral for CLion
 
 Development tools for the [perINKpheral](https://github.com/GrakovNe/perinkpheral) desk display.
-Status: preliminary, version 0.1.0.
+Status: preliminary, version 0.1.1.
 
 ## Functions
 

@@ -94,6 +94,8 @@ private class DevicePanel(private val toolWindow: ToolWindow) : JPanel(BorderLay
     private var lastFrame = -1
     private var logEnd: Long? = null
     private var connectedHost = ""
+    private var failures = 0
+    private var skips = 0
 
     init {
         val buttons = JPanel(FlowLayout(FlowLayout.CENTER, 4, 4))
@@ -146,6 +148,7 @@ private class DevicePanel(private val toolWindow: ToolWindow) : JPanel(BorderLay
         ApplicationManager.getApplication().executeOnPooledThread {
             try {
                 client.press(button, isLong)
+                skips = 0
                 refresh()
             } catch (error: Exception) {
                 show { status.text = error.message ?: "Request failed" }
@@ -156,6 +159,11 @@ private class DevicePanel(private val toolWindow: ToolWindow) : JPanel(BorderLay
     @Synchronized
     private fun refresh() {
         if (!toolWindow.isVisible) return
+        // After a failure the device is asked less often: every 2, 4, 8 ... 16 seconds.
+        if (skips > 0) {
+            skips--
+            return
+        }
         val client = client()
         if (client == null) {
             show { status.text = "Device address is not set: Settings | Tools | perINKpheral" }
@@ -179,8 +187,11 @@ private class DevicePanel(private val toolWindow: ToolWindow) : JPanel(BorderLay
                 }
             }
             val pending = if (frame.isRefreshPending) ", refresh pending" else ""
+            failures = 0
             show { status.text = "$connectedHost: frame ${frame.number}$pending" }
         } catch (error: Exception) {
+            failures = minOf(failures + 1, 4)
+            skips = (1 shl failures) - 1
             show { status.text = "$connectedHost: ${error.message ?: error.javaClass.simpleName}" }
         }
     }
