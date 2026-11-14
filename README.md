@@ -3,7 +3,7 @@
 # perINKpheral for CLion
 
 Development tools for the [perINKpheral](https://github.com/GrakovNe/perinkpheral) desk display.
-Status: preliminary, version 0.1.1.
+Status: preliminary, version 0.1.2.
 
 ## Functions
 
@@ -13,7 +13,7 @@ Status: preliminary, version 0.1.1.
 | Settings | Settings, Tools, perINKpheral | SDK checkout, wasi-sdk, Python 3, device address. |
 | New application | Tools, perINKpheral, New Application | Creates an application folder from the SDK sample. |
 | Run | Run configuration "perINKpheral Application" | Builds the application, uploads it and restarts the device into it. Offered from the context menu of any file of an application folder. Compiler messages are links. |
-| Device | Tool window "perINKpheral" | Live screen, the four buttons (Shift+click: long press), status, log. |
+| Device | Tool window "perINKpheral" | Live screen, the four buttons (Shift+click: long press), a screenshot (PNG file and clipboard), status, log. |
 | Manifest | `manifest.json` of an application folder | Validation, completion and descriptions by JSON schema. |
 | Firmware over network | Tools, perINKpheral, Upload Firmware over Network | Sends an image to the device. |
 | Firmware over USB | Tools, perINKpheral, Upload Firmware over USB | Writes an image with esptool. esptool is installed into `~/.perinkpheral/venv` on first use. |

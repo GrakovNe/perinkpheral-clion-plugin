@@ -3,7 +3,12 @@ package org.perinkpheral.clion.device
 
 import com.intellij.openapi.Disposable
 import com.intellij.openapi.application.ApplicationManager
+import com.intellij.openapi.fileChooser.FileChooserFactory
+import com.intellij.openapi.fileChooser.FileSaverDescriptor
+import com.intellij.openapi.ide.CopyPasteManager
 import com.intellij.openapi.project.DumbAware
+import com.intellij.openapi.project.guessProjectDir
+import com.intellij.openapi.vfs.LocalFileSystem
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.util.Disposer
 import com.intellij.openapi.wm.ToolWindow
@@ -22,10 +27,15 @@ import java.awt.FlowLayout
 import java.awt.Graphics
 import java.awt.Graphics2D
 import java.awt.RenderingHints
+import java.awt.datatransfer.DataFlavor
+import java.awt.datatransfer.Transferable
 import java.awt.event.ActionEvent
 import java.awt.image.BufferedImage
+import java.time.LocalDateTime
+import java.time.format.DateTimeFormatter
 import java.util.concurrent.ScheduledFuture
 import java.util.concurrent.TimeUnit
+import javax.imageio.ImageIO
 import javax.swing.JButton
 import javax.swing.JPanel
 import javax.swing.JTextArea
@@ -111,6 +121,10 @@ private class DevicePanel(private val toolWindow: ToolWindow) : JPanel(BorderLay
         menu.toolTipText = "Long press of BACK"
         menu.addActionListener { press(DeviceButton.BACK, true) }
         buttons.add(menu)
+        val shot = JButton("Screenshot")
+        shot.toolTipText = "Save the frame on the panel as a PNG and copy it to the clipboard"
+        shot.addActionListener { saveScreenshot() }
+        buttons.add(shot)
         val clear = JButton("Clear Log")
         clear.addActionListener { log.text = "" }
         buttons.add(clear)
@@ -193,6 +207,44 @@ private class DevicePanel(private val toolWindow: ToolWindow) : JPanel(BorderLay
             failures = minOf(failures + 1, 4)
             skips = (1 shl failures) - 1
             show { status.text = "$connectedHost: ${error.message ?: error.javaClass.simpleName}" }
+        }
+    }
+
+    /** Saves the frame as shown, two screen pixels per panel pixel, and puts it on the clipboard. */
+    private fun saveScreenshot() {
+        val frame = screen.frame
+        if (frame == null) {
+            status.text = "No frame to save yet"
+            return
+        }
+        val scale = 2
+        val picture = BufferedImage(frame.width * scale, frame.height * scale, BufferedImage.TYPE_INT_RGB)
+        val graphics = picture.createGraphics()
+        graphics.setRenderingHint(RenderingHints.KEY_INTERPOLATION,
+            RenderingHints.VALUE_INTERPOLATION_NEAREST_NEIGHBOR)
+        graphics.drawImage(frame, 0, 0, picture.width, picture.height, null)
+        graphics.dispose()
+        CopyPasteManager.getInstance().setContents(object : Transferable {
+            override fun getTransferDataFlavors() = arrayOf(DataFlavor.imageFlavor)
+            override fun isDataFlavorSupported(flavor: DataFlavor) = flavor == DataFlavor.imageFlavor
+            override fun getTransferData(flavor: DataFlavor): Any = picture
+        })
+        val stamp = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMdd-HHmmss"))
+        val descriptor = FileSaverDescriptor("Save Screenshot", "The frame on the panel", "png")
+        val base = toolWindow.project.guessProjectDir()
+        val chosen = FileChooserFactory.getInstance().createSaveFileDialog(descriptor, toolWindow.project)
+            .save(base, "perinkpheral-$stamp.png") ?: run {
+            status.text = "Screenshot copied to the clipboard"
+            return
+        }
+        ApplicationManager.getApplication().executeOnPooledThread {
+            try {
+                ImageIO.write(picture, "png", chosen.file)
+                LocalFileSystem.getInstance().refreshAndFindFileByIoFile(chosen.file)
+                show { status.text = "Saved ${chosen.file.name}; copied to the clipboard" }
+            } catch (error: Exception) {
+                show { status.text = error.message ?: "Screenshot was not saved" }
+            }
         }
     }
 
