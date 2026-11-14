@@ -6,7 +6,8 @@
         <p>Development tools for the perINKpheral desk display.</p>
         <ul>
             <li>Toolchain setup: SDK checkout and wasi-sdk are downloaded on request.</li>
-            <li>Run configuration: build an application, upload it and restart the device into it.</li>
+            <li>An application folder opens as a CMake project: the SDK and wasi-sdk are found from the plugin's settings.</li>
+            <li>Run configuration and Upload to Device: build an application, install it on the device and restart the device into it.</li>
             <li>Device tool window: live screen, buttons, log and status.</li>
             <li>Validation and completion for <code>manifest.json</code>.</li>
             <li>Firmware upload over the network and over USB.</li>
@@ -26,6 +27,7 @@
         <configurationType implementation="org.perinkpheral.clion.run.AppRunConfigurationType"/>
         <runConfigurationProducer implementation="org.perinkpheral.clion.run.AppRunConfigurationProducer"/>
         <notificationGroup id="perINKpheral" displayType="BALLOON"/>
+        <postStartupActivity implementation="org.perinkpheral.clion.project.AppProjectActivity"/>
     </extensions>
 
     <extensions defaultExtensionNs="JavaScript.JsonSchema">
@@ -43,6 +45,13 @@
                     class="org.perinkpheral.clion.run.NewApplicationAction"
                     text="New Application..."
                     description="Create an application folder from the SDK sample"/>
+            <action id="org.perinkpheral.clion.UploadToDevice"
+                    class="org.perinkpheral.clion.run.UploadToDeviceAction"
+                    text="Upload to Device"
+                    description="Build the application, install it on the device and restart the device into it">
+                <add-to-group group-id="ProjectViewPopupMenu" anchor="last"/>
+                <add-to-group group-id="EditorPopupMenu" anchor="last"/>
+            </action>
             <separator/>
             <action id="org.perinkpheral.clion.FlashNetwork"
                     class="org.perinkpheral.clion.firmware.FlashOverNetworkAction"

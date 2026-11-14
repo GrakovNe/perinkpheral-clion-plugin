@@ -7,6 +7,7 @@ import com.intellij.openapi.ui.TextFieldWithBrowseButton
 import com.intellij.ui.components.JBLabel
 import com.intellij.ui.components.JBTextField
 import com.intellij.util.ui.FormBuilder
+import org.perinkpheral.clion.project.AppProject
 import javax.swing.JComponent
 import javax.swing.JPanel
 
@@ -52,6 +53,7 @@ class PerinkpheralConfigurable : Configurable {
         state.wasiSdkPath = wasiSdkPath.text.trim()
         state.pythonPath = pythonPath.text.trim()
         state.deviceHost = deviceHost.text.trim()
+        AppProject.settingsChanged()
     }
 
     override fun reset() {

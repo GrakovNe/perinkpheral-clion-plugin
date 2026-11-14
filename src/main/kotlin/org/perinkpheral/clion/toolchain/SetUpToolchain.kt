@@ -10,6 +10,7 @@ import com.intellij.openapi.project.DumbAware
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.util.SystemInfo
 import com.intellij.util.io.HttpRequests
+import org.perinkpheral.clion.project.AppProject
 import org.perinkpheral.clion.settings.PerinkpheralSettings
 import java.io.File
 import java.io.IOException
@@ -44,6 +45,7 @@ class SetUpToolchainTask(project: Project?) : Task.Backgroundable(project, "Sett
     }
 
     override fun onSuccess() {
+        AppProject.settingsChanged()
         val text = if (done.isEmpty()) "Toolchain is ready." else "Installed: ${done.joinToString(", ")}."
         Tools.notify(project, text)
     }

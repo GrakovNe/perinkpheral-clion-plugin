@@ -3,7 +3,7 @@
 # perINKpheral for CLion
 
 Development tools for the [perINKpheral](https://github.com/GrakovNe/perinkpheral) desk display.
-Status: preliminary, version 0.1.2.
+Status: preliminary, version 0.2.0.
 
 ## Functions
 
@@ -12,6 +12,8 @@ Status: preliminary, version 0.1.2.
 | Toolchain setup | Tools, perINKpheral, Set Up Toolchain | Downloads the SDK checkout and wasi-sdk 34 into `~/.perinkpheral`. Paths that are set and valid are kept. |
 | Settings | Settings, Tools, perINKpheral | SDK checkout, wasi-sdk, Python 3, device address. |
 | New application | Tools, perINKpheral, New Application | Creates an application folder from the SDK sample. |
+| Application project | Opening an application folder | A folder with `manifest.json` and C sources opens as a CMake project. Without a CMakeLists.txt the plugin offers to write one; it reads the plugin's settings from `~/.perinkpheral/toolchain.cmake`, so no environment variables are needed. A run configuration is created and selected. |
+| Upload to Device | Tools, perINKpheral; the context menu of a file | Builds the application, installs it on the device and restarts the device into it. |
 | Run | Run configuration "perINKpheral Application" | Builds the application, uploads it and restarts the device into it. Offered from the context menu of any file of an application folder. Compiler messages are links. |
 | Device | Tool window "perINKpheral" | Live screen, the four buttons (Shift+click: long press), a screenshot (PNG file and clipboard), status, log. |
 | Manifest | `manifest.json` of an application folder | Validation, completion and descriptions by JSON schema. |
