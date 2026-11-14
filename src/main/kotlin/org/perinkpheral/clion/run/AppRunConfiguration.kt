@@ -117,6 +117,9 @@ class AppRunConfiguration(project: Project, factory: ConfigurationFactory, name:
         if (!inSimulator && settings.deviceHost.isBlank()) {
             throw RuntimeConfigurationError("Device address is not set.")
         }
+        if (inSimulator && Simulator.platform() == null) {
+            throw RuntimeConfigurationError("The simulator runs on macOS and Linux only.")
+        }
         if (mocksFile.isNotBlank() && !File(mocksFile).isFile) {
             throw RuntimeConfigurationError("The mocks file is not found.")
         }

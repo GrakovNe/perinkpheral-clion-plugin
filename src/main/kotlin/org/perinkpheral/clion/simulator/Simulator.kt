@@ -11,14 +11,14 @@ import java.io.IOException
 /**
  * The simulator the plugin carries, and what it needs from outside.
  *
- * On macOS the binary is in the plugin (one for arm64 and x86_64) and is put in
- * `~/.perinkpheral/simulator/bin`. Elsewhere `devtool.py sim` builds it from the SDK
- * checkout, which needs a C compiler and libcurl.
+ * The plugin carries the binary for macOS (one for arm64 and x86_64) and for Linux
+ * on x86_64 and aarch64 (static, any distribution); the one for this computer is put
+ * in `~/.perinkpheral/simulator/bin`. Its network is `tools/simulator/fetch.py` of the
+ * SDK checkout, run with the Python the plugin is set to. Windows is not supported yet.
  */
 object Simulator {
     const val PORT = 8401
     const val HOST = "127.0.0.1:$PORT"
-    private const val RESOURCE = "/simulator/macos/perinkpheral-sim"
     private const val GLYPHS_URL = "https://raw.githubusercontent.com/GrakovNe/perinkpheral-apps/HEAD/catalog/glyphs/"
     private val GLYPH_PACKS = listOf("latin", "cyrillic", "greek")
 
@@ -28,10 +28,21 @@ object Simulator {
 
     private fun home(): File = File(PerinkpheralSettings.managedDirectory(), "simulator")
 
+    /** The folder of the plugin's binary for this computer, or null when there is none. */
+    fun platform(): String? {
+        val arch = System.getProperty("os.arch").lowercase()
+        return when {
+            SystemInfo.isMac -> "macos"
+            SystemInfo.isLinux && (arch == "amd64" || arch == "x86_64") -> "linux-x86_64"
+            SystemInfo.isLinux && (arch == "aarch64" || arch == "arm64") -> "linux-aarch64"
+            else -> null
+        }
+    }
+
     /** The binary for this computer, or null when `devtool.py sim` is to build one. */
     fun binary(): File? {
-        if (!SystemInfo.isMac) return null
-        val stream = Simulator::class.java.getResourceAsStream(RESOURCE) ?: return null
+        val platform = platform() ?: return null
+        val stream = Simulator::class.java.getResourceAsStream("/simulator/$platform/perinkpheral-sim") ?: return null
         val bytes = stream.use { it.readBytes() }
         val target = File(home(), "bin/perinkpheral-sim")
         if (!target.isFile || target.length() != bytes.size.toLong() || !target.readBytes().contentEquals(bytes)) {

@@ -9,6 +9,7 @@
             <li>An application folder opens as a CMake project: the SDK and wasi-sdk are found from the plugin's settings.</li>
             <li>Run configuration and Upload to Device: build an application, install it on the device and restart the device into it.</li>
             <li>Device tool window: live screen, buttons, log and status.</li>
+            <li>Simulator on macOS and Linux: an application runs on this computer in the firmware's own interpreter and kit, in the foreground and in the background, with intents, alarms and mocked answers.</li>
             <li>Validation and completion for <code>manifest.json</code>.</li>
             <li>Firmware upload over the network and over USB.</li>
         </ul>
