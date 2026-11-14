@@ -11,6 +11,7 @@ import com.intellij.openapi.project.Project
 import com.intellij.openapi.util.SystemInfo
 import com.intellij.util.io.HttpRequests
 import org.perinkpheral.clion.project.AppProject
+import org.perinkpheral.clion.simulator.Simulator
 import org.perinkpheral.clion.settings.PerinkpheralSettings
 import java.io.File
 import java.io.IOException
@@ -42,6 +43,10 @@ class SetUpToolchainTask(project: Project?) : Task.Backgroundable(project, "Sett
             done += "wasi-sdk"
         }
         Toolchain.run(null, indicator, settings.pythonPath, "--version")
+        if (!Simulator.hasGlyphs()) {
+            Simulator.fetchGlyphs(indicator)
+            done += "glyph packs"
+        }
     }
 
     override fun onSuccess() {

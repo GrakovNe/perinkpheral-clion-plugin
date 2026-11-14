@@ -3,7 +3,7 @@
 # perINKpheral for CLion
 
 Development tools for the [perINKpheral](https://github.com/GrakovNe/perinkpheral) desk display.
-Status: preliminary, version 0.2.0.
+Status: preliminary, version 0.3.0.
 
 ## Functions
 
@@ -15,6 +15,7 @@ Status: preliminary, version 0.2.0.
 | Application project | Opening an application folder | A folder with `manifest.json` and C sources opens as a CMake project. Without a CMakeLists.txt the plugin offers to write one; it reads the plugin's settings from `~/.perinkpheral/toolchain.cmake`, so no environment variables are needed. A run configuration is created and selected. |
 | Upload to Device | Tools, perINKpheral; the context menu of a file | Builds the application, installs it on the device and restarts the device into it. |
 | Run | Run configuration "perINKpheral Application" | Builds the application, uploads it and restarts the device into it. Offered from the context menu of any file of an application folder. Compiler messages are links. |
+| Simulator | Run configuration "<name> (simulator)" | The application runs on this computer in the firmware's own interpreter, host API and kit: the frame is the device's. The device window shows it while it runs, with Background, Foreground, the three intents, Alarm 0 and +15 min. The network is the computer's; a mocks file replaces answers. macOS: the simulator is in the plugin; Linux: built from the SDK checkout (a C compiler and libcurl). |
 | Device | Tool window "perINKpheral" | Live screen, the four buttons (Shift+click: long press), a screenshot (PNG file and clipboard), status, log. |
 | Manifest | `manifest.json` of an application folder | Validation, completion and descriptions by JSON schema. |
 | Firmware over network | Tools, perINKpheral, Upload Firmware over Network | Sends an image to the device. |

@@ -21,6 +21,7 @@ import com.intellij.ui.content.ContentFactory
 import com.intellij.util.concurrency.AppExecutorUtil
 import com.intellij.util.ui.JBUI
 import org.perinkpheral.clion.settings.PerinkpheralSettings
+import org.perinkpheral.clion.simulator.Simulator
 import java.awt.BorderLayout
 import java.awt.Dimension
 import java.awt.FlowLayout
@@ -104,6 +105,7 @@ private class DevicePanel(private val toolWindow: ToolWindow) : JPanel(BorderLay
     private var lastFrame = -1
     private var logEnd: Long? = null
     private var connectedHost = ""
+    private val simulatorRow = JPanel(FlowLayout(FlowLayout.CENTER, 4, 4))
     private var failures = 0
     private var skips = 0
 
@@ -129,11 +131,31 @@ private class DevicePanel(private val toolWindow: ToolWindow) : JPanel(BorderLay
         clear.addActionListener { log.text = "" }
         buttons.add(clear)
 
+        // The simulator's own: what the device does by itself, asked for now.
+        simulatorRow.isVisible = false
+        fun simulatorButton(text: String, tip: String, path: String) {
+            val control = JButton(text)
+            control.toolTipText = tip
+            control.addActionListener { simulate(path) }
+            simulatorRow.add(control)
+        }
+        simulatorButton("Background", "The application leaves the screen; it is loaded only for what comes to it",
+            "background")
+        simulatorButton("Foreground", "The application takes the screen again", "foreground")
+        simulatorButton("Started", "Intent: the device was restarted", "intent?kind=started")
+        simulatorButton("Time Changed", "Intent: the clock or the time zone changed", "intent?kind=time_changed")
+        simulatorButton("Network Up", "Intent: the network is back", "intent?kind=network_up")
+        simulatorButton("Alarm 0", "Alarm 0 comes now", "alarm?id=0")
+        simulatorButton("+15 min", "The clock and every deadline move 15 minutes on", "forward?seconds=900")
+
         val top = JPanel(BorderLayout())
         screen.border = JBUI.Borders.customLine(JBColor.border())
         top.add(screen, BorderLayout.CENTER)
         val under = JPanel(BorderLayout())
-        under.add(buttons, BorderLayout.NORTH)
+        val rows = JPanel(BorderLayout())
+        rows.add(buttons, BorderLayout.NORTH)
+        rows.add(simulatorRow, BorderLayout.SOUTH)
+        under.add(rows, BorderLayout.NORTH)
         status.border = JBUI.Borders.empty(2, 8)
         under.add(status, BorderLayout.SOUTH)
         top.add(under, BorderLayout.SOUTH)
@@ -148,13 +170,29 @@ private class DevicePanel(private val toolWindow: ToolWindow) : JPanel(BorderLay
     }
 
     private fun client(): DeviceClient? {
-        val host = PerinkpheralSettings.get().deviceHost
+        // A simulator that runs is what the window looks at; the device otherwise.
+        val simulated = Simulator.activeHost
+        val host = simulated ?: PerinkpheralSettings.get().deviceHost
+        show { simulatorRow.isVisible = simulated != null }
         if (host != connectedHost) {
             connectedHost = host
             lastFrame = -1
             logEnd = null
         }
         return if (host.isBlank()) null else DeviceClient(host)
+    }
+
+    private fun simulate(path: String) {
+        val client = client() ?: return
+        ApplicationManager.getApplication().executeOnPooledThread {
+            try {
+                client.simulator(path)
+                skips = 0
+                refresh()
+            } catch (error: Exception) {
+                show { status.text = error.message ?: "Request failed" }
+            }
+        }
     }
 
     private fun press(button: DeviceButton, isLong: Boolean) {
@@ -202,7 +240,8 @@ private class DevicePanel(private val toolWindow: ToolWindow) : JPanel(BorderLay
             }
             val pending = if (frame.isRefreshPending) ", refresh pending" else ""
             failures = 0
-            show { status.text = "$connectedHost: frame ${frame.number}$pending" }
+            val where = if (Simulator.activeHost != null) "Simulator" else connectedHost
+            show { status.text = "$where: frame ${frame.number}$pending" }
         } catch (error: Exception) {
             failures = minOf(failures + 1, 4)
             skips = (1 shl failures) - 1

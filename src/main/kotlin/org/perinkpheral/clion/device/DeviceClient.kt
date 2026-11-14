@@ -86,6 +86,11 @@ class DeviceClient(host: String) {
         return DeviceLog(String(response.body, StandardCharsets.UTF_8), response.header("X-Log-End")?.toLongOrNull() ?: 0L)
     }
 
+    /** A request of the simulator's own (`/api/sim/...`): POST, the answer ignored. */
+    fun simulator(path: String) {
+        send("/api/sim/$path", "POST")
+    }
+
     /** Uploads a firmware image; the device installs it and restarts. */
     fun flash(image: ByteArray): String =
         String(send("/api/dev/flash", "POST", image, 180_000).body, StandardCharsets.UTF_8)

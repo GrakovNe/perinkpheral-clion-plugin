@@ -3,6 +3,7 @@ package org.perinkpheral.clion.settings
 
 import com.intellij.openapi.fileChooser.FileChooserDescriptorFactory
 import com.intellij.openapi.options.Configurable
+import com.intellij.openapi.ui.ComboBox
 import com.intellij.openapi.ui.TextFieldWithBrowseButton
 import com.intellij.ui.components.JBLabel
 import com.intellij.ui.components.JBTextField
@@ -17,6 +18,8 @@ class PerinkpheralConfigurable : Configurable {
     private val wasiSdkPath = TextFieldWithBrowseButton()
     private val pythonPath = JBTextField()
     private val deviceHost = JBTextField()
+    private val simulatorLanguage = JBTextField()
+    private val simulatorFont = ComboBox(arrayOf("departure", "jersey"))
     private var panel: JPanel? = null
 
     override fun getDisplayName(): String = "perINKpheral"
@@ -33,6 +36,9 @@ class PerinkpheralConfigurable : Configurable {
             .addLabeledComponent(JBLabel("Python 3:"), pythonPath, 1, false)
             .addLabeledComponent(JBLabel("Device address:"), deviceHost, 1, false)
             .addTooltip("Shown on the second page of About on the device.")
+            .addLabeledComponent(JBLabel("Simulator language:"), simulatorLanguage, 1, false)
+            .addTooltip("A code of sdk/languages.json: en, ru, de ...")
+            .addLabeledComponent(JBLabel("Simulator font:"), simulatorFont, 1, false)
             .addComponentFillVertically(JPanel(), 0)
             .panel
         panel = form
@@ -44,7 +50,8 @@ class PerinkpheralConfigurable : Configurable {
     override fun isModified(): Boolean {
         val state = stored()
         return sdkPath.text != state.sdkPath || wasiSdkPath.text != state.wasiSdkPath ||
-            pythonPath.text != state.pythonPath || deviceHost.text != state.deviceHost
+            pythonPath.text != state.pythonPath || deviceHost.text != state.deviceHost ||
+            simulatorLanguage.text != state.simulatorLanguage || simulatorFont.selectedItem != state.simulatorFont
     }
 
     override fun apply() {
@@ -53,6 +60,8 @@ class PerinkpheralConfigurable : Configurable {
         state.wasiSdkPath = wasiSdkPath.text.trim()
         state.pythonPath = pythonPath.text.trim()
         state.deviceHost = deviceHost.text.trim()
+        state.simulatorLanguage = simulatorLanguage.text.trim()
+        state.simulatorFont = simulatorFont.selectedItem as String
         AppProject.settingsChanged()
     }
 
@@ -62,6 +71,8 @@ class PerinkpheralConfigurable : Configurable {
         wasiSdkPath.text = state.wasiSdkPath
         pythonPath.text = state.pythonPath
         deviceHost.text = state.deviceHost
+        simulatorLanguage.text = state.simulatorLanguage
+        simulatorFont.selectedItem = state.simulatorFont
     }
 
     override fun disposeUIResources() {

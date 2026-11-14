@@ -20,6 +20,7 @@ import com.intellij.openapi.vfs.VirtualFile
 import org.perinkpheral.clion.manifest.isApplicationFolder
 import org.perinkpheral.clion.run.AppRunConfiguration
 import org.perinkpheral.clion.run.AppRunConfigurationType
+import org.perinkpheral.clion.simulator.Simulator
 import java.io.File
 
 /** An application folder opened as a project: CMake, the toolchain's paths and a run configuration. */
@@ -96,18 +97,28 @@ object AppProject {
         }
     }
 
-    /** A run configuration for the folder, created when there is none, and selected. */
+    /** Run configurations for the folder - on the device, and in the simulator - created when
+     * there are none; the device's is selected. */
     fun ensureRunConfiguration(project: Project, folder: VirtualFile) {
         val manager = RunManager.getInstance(project)
-        val existing = manager.allSettings.firstOrNull {
-            (it.configuration as? AppRunConfiguration)?.applicationFolder == folder.path
+        fun find(inSimulator: Boolean) = manager.allSettings.firstOrNull {
+            val configuration = it.configuration as? AppRunConfiguration
+            configuration?.applicationFolder == folder.path && configuration.inSimulator == inSimulator
         }
-        val settings = existing ?: manager.createConfiguration(folder.name, AppRunConfigurationType.get().factory).also {
-            (it.configuration as AppRunConfiguration).applicationFolder = folder.path
+        fun create(inSimulator: Boolean) = find(inSimulator) ?: manager.createConfiguration(
+            if (inSimulator) "${folder.name} (simulator)" else folder.name,
+            AppRunConfigurationType.get().factory
+        ).also {
+            val configuration = it.configuration as AppRunConfiguration
+            configuration.applicationFolder = folder.path
+            configuration.inSimulator = inSimulator
             manager.addConfiguration(it)
         }
-        if (manager.selectedConfiguration == null || existing == null) {
-            manager.selectedConfiguration = settings
+        val hadDevice = find(false) != null
+        val onDevice = create(false)
+        create(true)
+        if (manager.selectedConfiguration == null || !hadDevice) {
+            manager.selectedConfiguration = onDevice
         }
     }
 
@@ -138,6 +149,10 @@ class AppProjectActivity : ProjectActivity {
     override suspend fun execute(project: Project) {
         val folder = AppProject.folderOf(project) ?: return
         ToolchainFile.write()
+        if (!Simulator.hasGlyphs()) {
+            // Letters beyond ASCII for the simulator, quietly, once.
+            ApplicationManager.getApplication().executeOnPooledThread { Simulator.fetchGlyphs(null) }
+        }
         ApplicationManager.getApplication().invokeLater {
             if (project.isDisposed) return@invokeLater
             AppProject.ensureRunConfiguration(project, folder)

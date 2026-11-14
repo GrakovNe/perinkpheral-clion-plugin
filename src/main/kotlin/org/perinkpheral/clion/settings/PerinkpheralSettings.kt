@@ -25,6 +25,12 @@ class PerinkpheralSettings : PersistentStateComponent<PerinkpheralSettings.State
 
         /** Python 3 interpreter that runs the SDK tools. */
         var pythonPath: String = "python3"
+
+        /** The simulated device's language: "en", "ru", ... (sdk/languages.json). */
+        var simulatorLanguage: String = "en"
+
+        /** The simulated device's font: "departure" or "jersey". */
+        var simulatorFont: String = "departure"
     }
 
     private var state = State()
@@ -39,6 +45,8 @@ class PerinkpheralSettings : PersistentStateComponent<PerinkpheralSettings.State
     val wasiSdkPath: String get() = state.wasiSdkPath
     val deviceHost: String get() = state.deviceHost
     val pythonPath: String get() = state.pythonPath.ifBlank { "python3" }
+    val simulatorLanguage: String get() = state.simulatorLanguage.ifBlank { "en" }
+    val simulatorFont: String get() = state.simulatorFont.ifBlank { "departure" }
 
     fun tool(relativePath: String): File = File(state.sdkPath, relativePath)
 

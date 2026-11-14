@@ -14,7 +14,10 @@ import com.intellij.execution.configurations.RunConfiguration
 import com.intellij.execution.configurations.LocatableRunConfigurationOptions
 import com.intellij.execution.configurations.RunProfileState
 import com.intellij.execution.configurations.RuntimeConfigurationError
+import com.intellij.execution.configurations.GeneralCommandLine
 import com.intellij.execution.process.OSProcessHandler
+import com.intellij.execution.process.ProcessEvent
+import com.intellij.execution.process.ProcessListener
 import com.intellij.execution.process.ProcessHandler
 import com.intellij.execution.process.ProcessTerminatedListener
 import com.intellij.execution.runners.ExecutionEnvironment
@@ -25,9 +28,11 @@ import com.intellij.openapi.ui.TextFieldWithBrowseButton
 import com.intellij.openapi.util.IconLoader
 import com.intellij.openapi.util.Ref
 import com.intellij.psi.PsiElement
+import com.intellij.ui.components.JBCheckBox
 import com.intellij.util.ui.FormBuilder
 import org.perinkpheral.clion.manifest.findApplicationFolder
 import org.perinkpheral.clion.settings.PerinkpheralSettings
+import org.perinkpheral.clion.simulator.Simulator
 import org.perinkpheral.clion.toolchain.SourceLinkFilter
 import org.perinkpheral.clion.toolchain.Tools
 import java.io.File
@@ -62,6 +67,16 @@ class AppRunOptions : LocatableRunConfigurationOptions() {
     var applicationFolder: String
         get() = storedFolder.getValue(this) ?: ""
         set(value) = storedFolder.setValue(this, value)
+
+    private val storedSimulator = property(false).provideDelegate(this, "inSimulator")
+    var inSimulator: Boolean
+        get() = storedSimulator.getValue(this)
+        set(value) = storedSimulator.setValue(this, value)
+
+    private val storedMocks = string("").provideDelegate(this, "mocksFile")
+    var mocksFile: String
+        get() = storedMocks.getValue(this) ?: ""
+        set(value) = storedMocks.setValue(this, value)
 }
 
 /** Runs `devtool.py run <application folder>`: build, upload, restart into the application. */
@@ -76,6 +91,20 @@ class AppRunConfiguration(project: Project, factory: ConfigurationFactory, name:
             options.applicationFolder = value
         }
 
+    /** Runs in the simulator on this computer instead of on the device. */
+    var inSimulator: Boolean
+        get() = options.inSimulator
+        set(value) {
+            options.inSimulator = value
+        }
+
+    /** Simulator only: a JSON file of address to answer that replaces the network's. */
+    var mocksFile: String
+        get() = options.mocksFile
+        set(value) {
+            options.mocksFile = value
+        }
+
     override fun getConfigurationEditor(): SettingsEditor<out RunConfiguration> = AppRunSettingsEditor(project)
 
     override fun checkConfiguration() {
@@ -85,7 +114,12 @@ class AppRunConfiguration(project: Project, factory: ConfigurationFactory, name:
         val settings = PerinkpheralSettings.get()
         if (!settings.isSdkValid) throw RuntimeConfigurationError("SDK checkout is not set.")
         if (!settings.isWasiSdkValid) throw RuntimeConfigurationError("wasi-sdk is not set.")
-        if (settings.deviceHost.isBlank()) throw RuntimeConfigurationError("Device address is not set.")
+        if (!inSimulator && settings.deviceHost.isBlank()) {
+            throw RuntimeConfigurationError("Device address is not set.")
+        }
+        if (mocksFile.isNotBlank() && !File(mocksFile).isFile) {
+            throw RuntimeConfigurationError("The mocks file is not found.")
+        }
     }
 
     override fun getState(executor: Executor, environment: ExecutionEnvironment): RunProfileState {
@@ -96,34 +130,70 @@ class AppRunConfiguration(project: Project, factory: ConfigurationFactory, name:
             }
 
             override fun startProcess(): ProcessHandler {
-                if (!Tools.requireToolchain(project, needsDevice = true)) {
+                if (!Tools.requireToolchain(project, needsDevice = !inSimulator)) {
                     throw ExecutionException("Toolchain is not set up.")
                 }
-                val commandLine = Tools.python("tools/devtool/devtool.py", "run", folder.path)
-                    .withWorkDirectory(folder)
+                val commandLine = if (inSimulator) simulatorCommand(folder).withParameters(mocksArgument(this@AppRunConfiguration))
+                                  else Tools.python("tools/devtool/devtool.py", "run", folder.path)
+                commandLine.withWorkDirectory(folder)
                 val handler = OSProcessHandler(commandLine)
                 ProcessTerminatedListener.attach(handler)
+                if (inSimulator) {
+                    // While it runs, the device window and the tools look at the simulator.
+                    Simulator.activeHost = Simulator.HOST
+                    handler.addProcessListener(object : ProcessListener {
+                        override fun processTerminated(event: ProcessEvent) {
+                            Simulator.activeHost = null
+                        }
+                    })
+                }
                 return handler
             }
         }
     }
 }
 
+/** `devtool.py sim`: build the application and run it in the simulator, which runs until stopped. */
+private fun simulatorCommand(folder: File): GeneralCommandLine {
+    val settings = PerinkpheralSettings.get()
+    val arguments = mutableListOf("sim", folder.path, "--port", Simulator.PORT.toString(),
+        "--language", settings.simulatorLanguage, "--font", settings.simulatorFont,
+        "--glyphs", Simulator.glyphsFolder().path)
+    Simulator.binary()?.let { arguments += listOf("--binary", it.path) }
+    return Tools.python("tools/devtool/devtool.py", *arguments.toTypedArray())
+}
+
+private fun mocksArgument(configuration: AppRunConfiguration): List<String> =
+    if (configuration.mocksFile.isBlank()) emptyList() else listOf("--mocks", configuration.mocksFile)
+
 private class AppRunSettingsEditor(private val project: Project) : SettingsEditor<AppRunConfiguration>() {
     private val folder = TextFieldWithBrowseButton()
+    private val simulator = JBCheckBox("Run in the simulator on this computer")
+    private val mocks = TextFieldWithBrowseButton()
 
     override fun createEditor(): JComponent {
         folder.addBrowseFolderListener(project,
             FileChooserDescriptorFactory.createSingleFolderDescriptor().withTitle("Application Folder"))
-        return FormBuilder.createFormBuilder().addLabeledComponent("Application folder:", folder).panel
+        mocks.addBrowseFolderListener(project,
+            FileChooserDescriptorFactory.createSingleFileDescriptor("json").withTitle("Mocks"))
+        return FormBuilder.createFormBuilder()
+            .addLabeledComponent("Application folder:", folder)
+            .addComponent(simulator)
+            .addLabeledComponent("Mocks (simulator):", mocks)
+            .addTooltip("A JSON object of address to answer; an address ending in * matches the rest.")
+            .panel
     }
 
     override fun resetEditorFrom(configuration: AppRunConfiguration) {
         folder.text = configuration.applicationFolder
+        simulator.isSelected = configuration.inSimulator
+        mocks.text = configuration.mocksFile
     }
 
     override fun applyEditorTo(configuration: AppRunConfiguration) {
         configuration.applicationFolder = folder.text.trim()
+        configuration.inSimulator = simulator.isSelected
+        configuration.mocksFile = mocks.text.trim()
     }
 }
 
