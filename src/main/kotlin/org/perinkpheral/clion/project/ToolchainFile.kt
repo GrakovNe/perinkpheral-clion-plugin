@@ -2,8 +2,7 @@
 package org.perinkpheral.clion.project
 
 import org.perinkpheral.clion.settings.PerinkpheralSettings
-import org.perinkpheral.core.build.AppBuilder
-import org.perinkpheral.core.build.Sdk
+import org.perinkpheral.core.build.BuildFlags
 import java.io.File
 
 /**
@@ -12,8 +11,8 @@ import java.io.File
  * An application's CMakeLists.txt written by the plugin includes this file before anything
  * else, and then the SDK's own module, sdk/cmake/perinkpheral.cmake: CMake finds the SDK,
  * wasi-sdk and the device without environment variables - CLion does not start from a shell -
- * and the headers made of the strings and pictures where the plugin puts them,
- * `~/.perinkpheral/generated/<name>`.
+ * the build's flags as the core has them, and the headers made of the strings and pictures
+ * where the plugin puts them, `~/.perinkpheral/generated/<name>`. Nothing of it asks for Java.
  */
 object ToolchainFile {
     const val NAME = "toolchain.cmake"
@@ -48,6 +47,11 @@ object ToolchainFile {
             }
             // strings.h and pictures.h: made by the plugin, not by the command line.
             appendLine("set(PERINKPHERAL_GENERATED \"${cmakePath(generatedRoot.path)}\")")
+            // The build's flags, so that what CLion compiles is what the device gets.
+            val compile = BuildFlags.cmake(listOf(BuildFlags.TARGET) + BuildFlags.compile)
+            val link = BuildFlags.cmake(listOf(BuildFlags.TARGET) + BuildFlags.link)
+            appendLine("set(PERINKPHERAL_COMPILE_FLAGS \"$compile\")")
+            appendLine("set(PERINKPHERAL_LINK_FLAGS \"$link\")")
         }
         val target = file
         if (target.isFile && target.readText() == text) return false
@@ -57,17 +61,16 @@ object ToolchainFile {
     }
 
     /** Makes strings.h, strings.c and pictures.h of an application for the code to read.
-     * Returns null, or what is wrong with its strings or pictures. */
+     * Returns null, or what is wrong with its strings or pictures; then the headers made
+     * before stay, and the code keeps its names. */
     fun writeHeaders(appDir: File): String? {
         val settings = PerinkpheralSettings.get()
         if (!settings.isSdkValid) return null
         return try {
-            val into = generated(appDir.name)
-            into.deleteRecursively()
-            AppBuilder(Sdk(File(settings.sdkPath)), File(settings.wasiSdkPath)) {}.headers(appDir, into)
+            settings.builder {}.headers(appDir, generated(appDir.name))
             null
         } catch (error: Exception) {
-            error.message
+            error.message ?: error.javaClass.simpleName
         }
     }
 }

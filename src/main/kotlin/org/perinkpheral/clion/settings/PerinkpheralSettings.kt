@@ -6,6 +6,8 @@ import com.intellij.openapi.components.PersistentStateComponent
 import com.intellij.openapi.components.Service
 import com.intellij.openapi.components.State
 import com.intellij.openapi.components.Storage
+import org.perinkpheral.core.build.AppBuilder
+import org.perinkpheral.core.build.Sdk
 import java.io.File
 
 /** Paths of the toolchain and the address of the device. Stored per IDE installation. */
@@ -49,6 +51,8 @@ class PerinkpheralSettings : PersistentStateComponent<PerinkpheralSettings.State
     val isSdkValid: Boolean get() = tool("sdk/host_api.h").isFile && tool("sdk/lib/manifest_limits.h").isFile
     val isWasiSdkValid: Boolean get() = File(state.wasiSdkPath, "bin/clang").isFile || File(state.wasiSdkPath, "bin/clang.exe").isFile
 
+    /** The core's build, of the SDK and the wasi-sdk set here; what it says goes to `say`. */
+    fun builder(say: (String) -> Unit): AppBuilder = AppBuilder(Sdk(File(sdkPath)), File(wasiSdkPath), say)
 
     companion object {
         fun get(): PerinkpheralSettings =

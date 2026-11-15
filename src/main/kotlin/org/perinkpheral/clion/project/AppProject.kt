@@ -129,11 +129,18 @@ object AppProject {
         }
     }
 
-    /** strings.h and pictures.h of the application, for the code to read; a problem with its
-     * strings or pictures is said once. */
+    /** The problem with an application's strings or pictures said last, by its folder. */
+    private val problemsSaid = java.util.concurrent.ConcurrentHashMap<String, String>()
+
+    /** strings.h and pictures.h of the application, for the code to read. A problem with its
+     * strings or pictures is said once: not again for every file saved while it lasts. */
     fun writeHeaders(project: Project?, appDir: File) {
-        val problem = ToolchainFile.writeHeaders(appDir) ?: return
-        if (project != null) notify(project, problem)
+        val problem = ToolchainFile.writeHeaders(appDir)
+        if (problem == null) {
+            problemsSaid.remove(appDir.path)
+            return
+        }
+        if (problemsSaid.put(appDir.path, problem) != problem && project != null) notify(project, problem)
     }
 
     /** A new application in `folder`: the SDK's sample under its name, with the plugin's
@@ -180,7 +187,11 @@ object AppProject {
 class AppProjectActivity : ProjectActivity {
     override suspend fun execute(project: Project) {
         val folder = AppProject.folderOf(project) ?: return
-        ToolchainFile.write()
+        // A toolchain file written by an older plugin, without what this one puts in it: CMake,
+        // which may have read it already, reads it again.
+        if (ToolchainFile.write() && AppProject.listsOf(folder) == AppProject.Lists.OURS) {
+            AppProject.loadCMake(project, folder.findChild(AppProject.CMAKE_LISTS), reload = true)
+        }
         AppProject.writeHeaders(project, File(folder.path))
         AppProject.watchStringsAndPictures(project, File(folder.path))
         if (!Simulator.hasGlyphs()) {

@@ -22,6 +22,7 @@ import com.intellij.util.ui.JBUI
 import org.perinkpheral.clion.settings.PerinkpheralSettings
 import org.perinkpheral.core.device.DeviceButton
 import org.perinkpheral.core.device.DeviceClient
+import org.perinkpheral.core.device.LogFollower
 import org.perinkpheral.clion.simulator.Simulator
 import java.awt.BorderLayout
 import java.awt.Dimension
@@ -106,7 +107,7 @@ private class DevicePanel(private val toolWindow: ToolWindow) : JPanel(BorderLay
     }
     private val poll: ScheduledFuture<*>
     private var lastFrame = -1
-    private var logEnd: Long? = null
+    private var follower: LogFollower? = null
     private var connectedHost = ""
     private val simulatorRow = JPanel(FlowLayout(FlowLayout.CENTER, 4, 4))
     private var failures = 0
@@ -180,7 +181,7 @@ private class DevicePanel(private val toolWindow: ToolWindow) : JPanel(BorderLay
         if (host != connectedHost) {
             connectedHost = host
             lastFrame = -1
-            logEnd = null
+            follower = if (host.isBlank()) null else LogFollower(DeviceClient(host))
         }
         return if (host.isBlank()) null else DeviceClient(host)
     }
@@ -225,23 +226,22 @@ private class DevicePanel(private val toolWindow: ToolWindow) : JPanel(BorderLay
             return
         }
         try {
-            val frame = client.frame()
+            val frame = client.screen()
             if (frame.number != lastFrame || screen.frame == null) {
                 lastFrame = frame.number
-                show { screen.frame = frame.image }
+                val image = frame.image()
+                show { screen.frame = image }
             }
-            val part = client.log(logEnd)
-            // A position behind the stored one means the device restarted.
-            val restarted = logEnd != null && part.end < logEnd!!
-            logEnd = part.end
-            if (part.text.isNotEmpty() || restarted) {
+            // A device that started anew in between: its new log, from the beginning.
+            val part = follower?.next() ?: return
+            if (part.text.isNotEmpty() || part.restarted) {
                 show {
-                    if (restarted) log.append("--- restart ---\n")
+                    if (part.restarted) log.append("--- restart ---\n")
                     log.append(part.text)
                     log.caretPosition = log.document.length
                 }
             }
-            val pending = if (frame.isRefreshPending) ", refresh pending" else ""
+            val pending = if (frame.isPending) ", refresh pending" else ""
             failures = 0
             val where = if (Simulator.activeHost != null) "Simulator" else connectedHost
             show { status.text = "$where: frame ${frame.number}$pending" }

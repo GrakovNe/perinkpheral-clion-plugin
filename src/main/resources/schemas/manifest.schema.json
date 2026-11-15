@@ -77,10 +77,14 @@
             "additionalProperties": { "type": "string", "maxLength": 255 }
           },
           "pick": {
-            "description": "JSON paths the host extracts, delivered through app_on_values().",
+            "description": "JSON paths the host extracts, delivered through app_on_values(). \"[*]\" once in a path: every element of an array, read with data_count() and data_element().",
             "type": "array",
             "maxItems": 16,
             "items": { "type": "string", "minLength": 1, "maxLength": 63 }
+          },
+          "each": {
+            "description": "Key of a list setting: one request for every item, {{key}} being the item; data_item() says which.",
+            "$ref": "#/definitions/settingKey"
           }
         }
       }
@@ -101,11 +105,17 @@
         "properties": {
           "key": { "$ref": "#/definitions/settingKey" },
           "type": {
-            "enum": ["text", "secret", "number", "choice", "toggle", "place", "url", "link"]
+            "enum": ["text", "secret", "number", "choice", "toggle", "place", "url", "link", "list"]
           },
           "title": { "type": "string", "minLength": 1, "maxLength": 31 },
           "help": { "type": "string", "maxLength": 95 },
-          "default": { "type": "string", "maxLength": 255 },
+          "default": {
+            "description": "What the setting reads as while nothing is stored. A list's is a list of items.",
+            "oneOf": [
+              { "type": "string", "minLength": 1, "maxLength": 255 },
+              { "type": "array", "minItems": 1, "items": { "type": "string", "minLength": 1, "maxLength": 63, "pattern": "^[ -~]+$" } }
+            ]
+          },
           "options": {
             "type": "array",
             "minItems": 1,
