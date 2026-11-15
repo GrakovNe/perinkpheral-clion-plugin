@@ -5,7 +5,6 @@ import com.intellij.openapi.Disposable
 import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.fileChooser.FileChooserFactory
 import com.intellij.openapi.fileChooser.FileSaverDescriptor
-import com.intellij.openapi.ide.CopyPasteManager
 import com.intellij.openapi.project.DumbAware
 import com.intellij.openapi.project.guessProjectDir
 import com.intellij.openapi.vfs.LocalFileSystem
@@ -28,8 +27,10 @@ import java.awt.FlowLayout
 import java.awt.Graphics
 import java.awt.Graphics2D
 import java.awt.RenderingHints
+import java.awt.Toolkit
 import java.awt.datatransfer.DataFlavor
 import java.awt.datatransfer.Transferable
+import java.awt.datatransfer.UnsupportedFlavorException
 import java.awt.event.ActionEvent
 import java.awt.image.BufferedImage
 import java.time.LocalDateTime
@@ -263,11 +264,14 @@ private class DevicePanel(private val toolWindow: ToolWindow) : JPanel(BorderLay
             RenderingHints.VALUE_INTERPOLATION_NEAREST_NEIGHBOR)
         graphics.drawImage(frame, 0, 0, picture.width, picture.height, null)
         graphics.dispose()
-        CopyPasteManager.getInstance().setContents(object : Transferable {
+        // Straight to the system clipboard: the IDE's clipboard with history reads every
+        // content as text, which a picture is not.
+        Toolkit.getDefaultToolkit().systemClipboard.setContents(object : Transferable {
             override fun getTransferDataFlavors() = arrayOf(DataFlavor.imageFlavor)
             override fun isDataFlavorSupported(flavor: DataFlavor) = flavor == DataFlavor.imageFlavor
-            override fun getTransferData(flavor: DataFlavor): Any = picture
-        })
+            override fun getTransferData(flavor: DataFlavor): Any =
+                if (flavor == DataFlavor.imageFlavor) picture else throw UnsupportedFlavorException(flavor)
+        }, null)
         val stamp = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMdd-HHmmss"))
         val descriptor = FileSaverDescriptor("Save Screenshot", "The frame on the panel", "png")
         val base = toolWindow.project.guessProjectDir()
