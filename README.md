@@ -3,28 +3,29 @@
 # perINKpheral for CLion
 
 Development tools for the [perINKpheral](https://github.com/GrakovNe/perinkpheral) desk display.
-Status: preliminary, version 0.3.0.
+Status: preliminary, version 0.5.0. Written in Kotlin, with no Python under it: the build, the
+checks, the upload and the simulator's network run in the IDE's own process.
 
 ## Functions
 
 | Function | Where | Description |
 |---|---|---|
 | Toolchain setup | Tools, perINKpheral, Set Up Toolchain | Downloads the SDK checkout and wasi-sdk 34 into `~/.perinkpheral`. Paths that are set and valid are kept. |
-| Settings | Settings, Tools, perINKpheral | SDK checkout, wasi-sdk, Python 3, device address. |
+| Settings | Settings, Tools, perINKpheral | SDK checkout, wasi-sdk, device address, the simulator's language and font. |
 | New application | Tools, perINKpheral, New Application | Creates an application folder from the SDK sample. |
-| Application project | Opening an application folder | A folder with `manifest.json` and C sources opens as a CMake project. Without a CMakeLists.txt the plugin offers to write one; it reads the plugin's settings from `~/.perinkpheral/toolchain.cmake`, so no environment variables are needed. A run configuration is created and selected. |
+| Application project | Opening an application folder | A folder with `manifest.json` and C sources opens as a CMake project. Without a CMakeLists.txt the plugin offers to write one; it reads `~/.perinkpheral/app.cmake`, which the plugin writes from its settings: CMake compiles the code with clang of wasi-sdk and the build's flags. `strings.h` and `pictures.h` are made by the plugin into `~/.perinkpheral/generated/<name>` when the project opens and when a file of `strings` or `pictures` changes. A run configuration is created and selected. |
 | Upload to Device | Tools, perINKpheral; the context menu of a file | Builds the application, installs it on the device and restarts the device into it. |
-| Run | Run configuration "perINKpheral Application" | Builds the application, uploads it and restarts the device into it. Offered from the context menu of any file of an application folder. Compiler messages are links. |
-| Simulator | Run configuration "<name> (simulator)" | The application runs on this computer in the firmware's own interpreter, host API and kit: the frame is the device's. The device window shows it while it runs, with Background, Foreground, the three intents, Alarm 0 and +15 min. The network is the computer's; a mocks file replaces answers. The simulator is in the plugin for macOS (arm64, x86_64) and Linux (x86_64, aarch64); its network is Python's. Not on Windows yet. |
+| Run | Run configuration "perINKpheral Application" | Builds the application - compiled with clang, checked by the rules the device applies, measured as tools/mkapp measures it - uploads it and restarts the device into it. Offered from the context menu of any file of an application folder. Compiler messages are links. |
+| Simulator | Run configuration "<name> (simulator)" | The application runs on this computer in the firmware's own interpreter, host API and kit: the frame is the device's. The device window shows it while it runs, with Background, Foreground, the three intents, Alarm 0 and +15 min. The network is the IDE's own, the local network included; a mocks file replaces answers. The simulator is in the plugin for macOS (arm64, x86_64) and Linux (x86_64, aarch64). Not on Windows yet. |
 | Device | Tool window "perINKpheral" | Live screen, the four buttons (Shift+click: long press), a screenshot (PNG file and clipboard), status, log. |
 | Manifest | `manifest.json` of an application folder | Validation, completion and descriptions by JSON schema. |
 | Firmware over network | Tools, perINKpheral, Upload Firmware over Network | Sends an image to the device. |
-| Firmware over USB | Tools, perINKpheral, Upload Firmware over USB | Writes an image with esptool. esptool is installed into `~/.perinkpheral/venv` on first use. |
+| Firmware over USB | Tools, perINKpheral, Upload Firmware over USB | Writes an image with esptool: Espressif's own build of it, a program with no Python under it, downloaded into `~/.perinkpheral` on first use. |
 
 ## Requirements
 
 - CLion 2026.2 or later.
-- Python 3 and git on `PATH`.
+- git on `PATH` (Set Up Toolchain clones the SDK with it).
 - A device with development firmware (`APP_DEV_CONSOLE`, the default) for Run, Device and Firmware over network.
 
 ## Firmware over USB
@@ -51,3 +52,10 @@ The archive is written to `build/distributions`. Install it with Settings, Plugi
 ## License
 
 MIT.
+
+## Why the plugin does its own network
+
+macOS lets an application into the local network by the user's permission, and programs the
+application starts do not always get it: a Python started by CLion could not reach the device
+while CLion could. Everything that talks to the device or to a user's server - the upload, the
+firmware, the simulator's requests - is therefore done in CLion's own process.

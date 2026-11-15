@@ -23,9 +23,6 @@ class PerinkpheralSettings : PersistentStateComponent<PerinkpheralSettings.State
         /** Host name or IP address of the device. */
         var deviceHost: String = ""
 
-        /** Python 3 interpreter that runs the SDK tools. */
-        var pythonPath: String = "python3"
-
         /** The simulated device's language: "en", "ru", ... (sdk/languages.json). */
         var simulatorLanguage: String = "en"
 
@@ -44,20 +41,14 @@ class PerinkpheralSettings : PersistentStateComponent<PerinkpheralSettings.State
     val sdkPath: String get() = state.sdkPath
     val wasiSdkPath: String get() = state.wasiSdkPath
     val deviceHost: String get() = state.deviceHost
-    val pythonPath: String get() = state.pythonPath.ifBlank { "python3" }
     val simulatorLanguage: String get() = state.simulatorLanguage.ifBlank { "en" }
     val simulatorFont: String get() = state.simulatorFont.ifBlank { "departure" }
 
     fun tool(relativePath: String): File = File(state.sdkPath, relativePath)
 
-    val isSdkValid: Boolean get() = tool("tools/mkapp/mkapp.py").isFile && tool("sdk/host_api.h").isFile
+    val isSdkValid: Boolean get() = tool("sdk/host_api.h").isFile && tool("sdk/lib/manifest_limits.h").isFile
     val isWasiSdkValid: Boolean get() = File(state.wasiSdkPath, "bin/clang").isFile || File(state.wasiSdkPath, "bin/clang.exe").isFile
 
-    /** Environment for the SDK tools. */
-    fun toolEnvironment(): Map<String, String> = buildMap {
-        if (state.wasiSdkPath.isNotBlank()) put("WASI_SDK_PATH", state.wasiSdkPath)
-        if (state.deviceHost.isNotBlank()) put("PERINKPHERAL_HOST", state.deviceHost)
-    }
 
     companion object {
         fun get(): PerinkpheralSettings =

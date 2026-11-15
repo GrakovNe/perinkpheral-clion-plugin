@@ -16,7 +16,6 @@ import javax.swing.JPanel
 class PerinkpheralConfigurable : Configurable {
     private val sdkPath = TextFieldWithBrowseButton()
     private val wasiSdkPath = TextFieldWithBrowseButton()
-    private val pythonPath = JBTextField()
     private val deviceHost = JBTextField()
     private val simulatorLanguage = JBTextField()
     private val simulatorFont = ComboBox(arrayOf("departure", "jersey"))
@@ -30,10 +29,9 @@ class PerinkpheralConfigurable : Configurable {
         wasiSdkPath.addBrowseFolderListener(null, folder("wasi-sdk"))
         val form = FormBuilder.createFormBuilder()
             .addLabeledComponent(JBLabel("SDK checkout:"), sdkPath, 1, false)
-            .addTooltip("The perinkpheral repository: contains sdk/ and tools/.")
+            .addTooltip("The perinkpheral repository: contains sdk/.")
             .addLabeledComponent(JBLabel("wasi-sdk:"), wasiSdkPath, 1, false)
             .addTooltip("An unpacked wasi-sdk: contains bin/clang.")
-            .addLabeledComponent(JBLabel("Python 3:"), pythonPath, 1, false)
             .addLabeledComponent(JBLabel("Device address:"), deviceHost, 1, false)
             .addTooltip("Shown on the second page of About on the device.")
             .addLabeledComponent(JBLabel("Simulator language:"), simulatorLanguage, 1, false)
@@ -50,7 +48,7 @@ class PerinkpheralConfigurable : Configurable {
     override fun isModified(): Boolean {
         val state = stored()
         return sdkPath.text != state.sdkPath || wasiSdkPath.text != state.wasiSdkPath ||
-            pythonPath.text != state.pythonPath || deviceHost.text != state.deviceHost ||
+            deviceHost.text != state.deviceHost ||
             simulatorLanguage.text != state.simulatorLanguage || simulatorFont.selectedItem != state.simulatorFont
     }
 
@@ -58,7 +56,6 @@ class PerinkpheralConfigurable : Configurable {
         val state = stored()
         state.sdkPath = sdkPath.text.trim()
         state.wasiSdkPath = wasiSdkPath.text.trim()
-        state.pythonPath = pythonPath.text.trim()
         state.deviceHost = deviceHost.text.trim()
         state.simulatorLanguage = simulatorLanguage.text.trim()
         state.simulatorFont = simulatorFont.selectedItem as String
@@ -69,7 +66,6 @@ class PerinkpheralConfigurable : Configurable {
         val state = stored()
         sdkPath.text = state.sdkPath
         wasiSdkPath.text = state.wasiSdkPath
-        pythonPath.text = state.pythonPath
         deviceHost.text = state.deviceHost
         simulatorLanguage.text = state.simulatorLanguage
         simulatorFont.selectedItem = state.simulatorFont

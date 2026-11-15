@@ -14,14 +14,13 @@ import com.intellij.execution.configurations.RunConfiguration
 import com.intellij.execution.configurations.LocatableRunConfigurationOptions
 import com.intellij.execution.configurations.RunProfileState
 import com.intellij.execution.configurations.RuntimeConfigurationError
-import com.intellij.execution.configurations.GeneralCommandLine
-import com.intellij.execution.process.OSProcessHandler
 import com.intellij.execution.process.ProcessEvent
 import com.intellij.execution.process.ProcessListener
 import com.intellij.execution.process.ProcessHandler
 import com.intellij.execution.process.ProcessTerminatedListener
 import com.intellij.execution.runners.ExecutionEnvironment
 import com.intellij.openapi.fileChooser.FileChooserDescriptorFactory
+import com.intellij.openapi.fileEditor.FileDocumentManager
 import com.intellij.openapi.options.SettingsEditor
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.ui.TextFieldWithBrowseButton
@@ -79,7 +78,7 @@ class AppRunOptions : LocatableRunConfigurationOptions() {
         set(value) = storedMocks.setValue(this, value)
 }
 
-/** Runs `devtool.py run <application folder>`: build, upload, restart into the application. */
+/** Builds the application and runs it: on the device (upload, restart into it) or in the simulator. */
 class AppRunConfiguration(project: Project, factory: ConfigurationFactory, name: String) :
     LocatableConfigurationBase<AppRunOptions>(project, factory, name) {
 
@@ -136,10 +135,10 @@ class AppRunConfiguration(project: Project, factory: ConfigurationFactory, name:
                 if (!Tools.requireToolchain(project, needsDevice = !inSimulator)) {
                     throw ExecutionException("Toolchain is not set up.")
                 }
-                val commandLine = if (inSimulator) simulatorCommand(folder).withParameters(mocksArgument(this@AppRunConfiguration))
-                                  else Tools.python("tools/devtool/devtool.py", "run", folder.path)
-                commandLine.withWorkDirectory(folder)
-                val handler = OSProcessHandler(commandLine)
+                FileDocumentManager.getInstance().saveAllDocuments()
+                val mocks = mocksFile
+                val handler = if (inSimulator) TaskProcessHandler { AppRuns.inSimulator(this, folder, mocks) }
+                              else TaskProcessHandler { AppRuns.onDevice(this, folder) }
                 ProcessTerminatedListener.attach(handler)
                 if (inSimulator) {
                     // While it runs, the device window and the tools look at the simulator.
@@ -155,19 +154,6 @@ class AppRunConfiguration(project: Project, factory: ConfigurationFactory, name:
         }
     }
 }
-
-/** `devtool.py sim`: build the application and run it in the simulator, which runs until stopped. */
-private fun simulatorCommand(folder: File): GeneralCommandLine {
-    val settings = PerinkpheralSettings.get()
-    val arguments = mutableListOf("sim", folder.path, "--port", Simulator.PORT.toString(),
-        "--language", settings.simulatorLanguage, "--font", settings.simulatorFont,
-        "--glyphs", Simulator.glyphsFolder().path)
-    Simulator.binary()?.let { arguments += listOf("--binary", it.path) }
-    return Tools.python("tools/devtool/devtool.py", *arguments.toTypedArray())
-}
-
-private fun mocksArgument(configuration: AppRunConfiguration): List<String> =
-    if (configuration.mocksFile.isBlank()) emptyList() else listOf("--mocks", configuration.mocksFile)
 
 private class AppRunSettingsEditor(private val project: Project) : SettingsEditor<AppRunConfiguration>() {
     private val folder = TextFieldWithBrowseButton()

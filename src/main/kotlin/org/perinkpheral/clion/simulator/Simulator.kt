@@ -13,8 +13,8 @@ import java.io.IOException
  *
  * The plugin carries the binary for macOS (one for arm64 and x86_64) and for Linux
  * on x86_64 and aarch64 (static, any distribution); the one for this computer is put
- * in `~/.perinkpheral/simulator/bin`. Its network is `tools/simulator/fetch.py` of the
- * SDK checkout, run with the Python the plugin is set to. Windows is not supported yet.
+ * in `~/.perinkpheral/simulator/bin`. Its network is the plugin's own (SimulatorNetwork).
+ * Windows is not supported yet.
  */
 object Simulator {
     const val PORT = 8401
@@ -26,7 +26,8 @@ object Simulator {
     @Volatile
     var activeHost: String? = null
 
-    private fun home(): File = File(PerinkpheralSettings.managedDirectory(), "simulator")
+    /** Where the simulator keeps its binary, its glyph packs and a state an application. */
+    fun home(): File = File(PerinkpheralSettings.managedDirectory(), "simulator")
 
     /** The folder of the plugin's binary for this computer, or null when there is none. */
     fun platform(): String? {
@@ -39,7 +40,7 @@ object Simulator {
         }
     }
 
-    /** The binary for this computer, or null when `devtool.py sim` is to build one. */
+    /** The binary for this computer, or null on a system it is not built for. */
     fun binary(): File? {
         val platform = platform() ?: return null
         val stream = Simulator::class.java.getResourceAsStream("/simulator/$platform/perinkpheral-sim") ?: return null

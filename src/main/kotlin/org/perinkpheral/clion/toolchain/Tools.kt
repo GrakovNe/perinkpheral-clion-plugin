@@ -6,6 +6,7 @@ import com.intellij.execution.configurations.GeneralCommandLine
 import com.intellij.execution.filters.Filter
 import com.intellij.execution.filters.OpenFileHyperlinkInfo
 import com.intellij.execution.process.OSProcessHandler
+import com.intellij.execution.process.ProcessHandler
 import com.intellij.execution.process.ProcessTerminatedListener
 import com.intellij.notification.NotificationGroupManager
 import com.intellij.notification.NotificationType
@@ -15,7 +16,6 @@ import com.intellij.openapi.vfs.LocalFileSystem
 import org.perinkpheral.clion.settings.PerinkpheralConfigurable
 import org.perinkpheral.clion.settings.PerinkpheralSettings
 import java.io.File
-import java.nio.charset.StandardCharsets
 
 object Tools {
     fun notify(project: Project?, text: String, type: NotificationType = NotificationType.INFORMATION) {
@@ -23,18 +23,15 @@ object Tools {
             .createNotification("perINKpheral", text, type).notify(project)
     }
 
-    /** A command line of an SDK tool: `python <sdk>/<script> <arguments>`, with the tool environment. */
-    fun python(script: String, vararg arguments: String): GeneralCommandLine {
-        val settings = PerinkpheralSettings.get()
-        return GeneralCommandLine(settings.pythonPath, settings.tool(script).path, *arguments)
-            .withEnvironment(settings.toolEnvironment())
-            .withCharset(StandardCharsets.UTF_8)
-    }
-
     /** Runs a command line in the Run tool window. `afterExit` receives the exit code. */
     fun runInConsole(project: Project, title: String, commandLine: GeneralCommandLine,
                      afterExit: ((Int) -> Unit)? = null) {
-        val handler = OSProcessHandler(commandLine)
+        runInConsole(project, title, OSProcessHandler(commandLine), commandLine.workDirectory, afterExit)
+    }
+
+    /** Runs a process - a program's, or the plugin's own work - in the Run tool window. */
+    fun runInConsole(project: Project, title: String, handler: ProcessHandler, directory: File?,
+                     afterExit: ((Int) -> Unit)? = null) {
         ProcessTerminatedListener.attach(handler)
         if (afterExit != null) {
             handler.addProcessListener(object : com.intellij.execution.process.ProcessListener {
@@ -45,7 +42,7 @@ object Tools {
         }
         RunContentExecutor(project, handler)
             .withTitle(title)
-            .withFilter(SourceLinkFilter(project, commandLine.workDirectory))
+            .withFilter(SourceLinkFilter(project, directory))
             .withActivateToolWindow(true)
             .run()
     }

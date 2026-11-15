@@ -17,7 +17,12 @@ import com.intellij.openapi.project.guessProjectDir
 import com.intellij.openapi.startup.ProjectActivity
 import com.intellij.openapi.vfs.LocalFileSystem
 import com.intellij.openapi.vfs.VirtualFile
+import com.intellij.openapi.vfs.VirtualFileManager
+import com.intellij.openapi.vfs.newvfs.BulkFileListener
+import com.intellij.openapi.vfs.newvfs.events.VFileEvent
+import org.perinkpheral.clion.build.Json
 import org.perinkpheral.clion.manifest.isApplicationFolder
+import org.perinkpheral.clion.settings.PerinkpheralSettings
 import org.perinkpheral.clion.run.AppRunConfiguration
 import org.perinkpheral.clion.run.AppRunConfigurationType
 import org.perinkpheral.clion.simulator.Simulator
@@ -27,8 +32,8 @@ import java.io.File
 object AppProject {
     const val CMAKE_LISTS = "CMakeLists.txt"
 
-    /** Marks a CMakeLists.txt this plugin wrote: it reads the toolchain file. */
-    private const val MARK = ".perinkpheral/toolchain.cmake"
+    /** Marks a CMakeLists.txt this plugin wrote: it reads the plugin's app.cmake. */
+    private const val MARK = ".perinkpheral/app.cmake"
 
     /** The application folder the project is, or null. */
     fun folderOf(project: Project): VirtualFile? = project.guessProjectDir()?.takeIf { isApplicationFolder(it) }
@@ -36,25 +41,21 @@ object AppProject {
     fun cmakeLists(name: String): String = """
         |# SPDX-License-Identifier: MIT
         |# A perINKpheral application as a CMake project, written by the perINKpheral plugin for CLion.
-        |# Targets: $name (build), $name-run (build, upload, restart the device into it), $name-serve (live page).
+        |# CMake reads and compiles the code; the plugin builds the package, checks it and runs it
+        |# on the device or in the simulator.
         |cmake_minimum_required(VERSION 3.20)
         |
-        |# The paths of the toolchain and the device's address, from the plugin's settings;
-        |# without the plugin, the environment: PERINKPHERAL, WASI_SDK_PATH, PERINKPHERAL_HOST.
+        |# The SDK and wasi-sdk, from the plugin's settings.
         |foreach(home "${'$'}ENV{HOME}" "${'$'}ENV{USERPROFILE}")
         |    if(home AND EXISTS "${'$'}{home}/$MARK")
         |        include("${'$'}{home}/$MARK")
         |        break()
         |    endif()
         |endforeach()
-        |if(NOT PERINKPHERAL AND DEFINED ENV{PERINKPHERAL})
-        |    set(PERINKPHERAL "${'$'}ENV{PERINKPHERAL}")
+        |if(NOT COMMAND perinkpheral_app)
+        |    message(FATAL_ERROR "Open this application in CLion with the perINKpheral plugin: "
+        |                        "it writes ~/$MARK from Settings | Tools | perINKpheral.")
         |endif()
-        |if(NOT EXISTS "${'$'}{PERINKPHERAL}/sdk/cmake/perinkpheral.cmake")
-        |    message(FATAL_ERROR "The perinkpheral SDK is not found. Set it in Settings | Tools | perINKpheral, "
-        |                        "or set PERINKPHERAL to a checkout of the perinkpheral repository.")
-        |endif()
-        |include("${'$'}{PERINKPHERAL}/sdk/cmake/perinkpheral.cmake")
         |
         |project($name C)
         |perinkpheral_app(.)
@@ -75,6 +76,7 @@ object AppProject {
     /** Writes the CMakeLists.txt, refreshes the file system and loads or reloads the CMake project. */
     fun writeCMakeLists(project: Project, folder: VirtualFile) {
         ToolchainFile.write()
+        writeHeaders(project, File(folder.path))
         val file = File(folder.path, CMAKE_LISTS)
         val wasThere = file.isFile
         file.writeText(cmakeLists(folder.name))
@@ -122,6 +124,33 @@ object AppProject {
         }
     }
 
+    /** strings.h and pictures.h of the application, for the code to read; a problem with its
+     * strings or pictures is said once. */
+    fun writeHeaders(project: Project?, appDir: File) {
+        val problem = ToolchainFile.writeHeaders(appDir) ?: return
+        if (project != null) notify(project, problem)
+    }
+
+    /** A new application in `folder`: the SDK's sample under its name, a manifest of its own,
+     * and a CMakeLists.txt. Returns its source file. */
+    fun create(folder: File, title: String): File {
+        val sample = File(PerinkpheralSettings.get().sdkPath, "sdk/apps/hello")
+        val name = folder.name
+        @Suppress("UNCHECKED_CAST")
+        val manifest = LinkedHashMap(Json.parse(File(sample, "manifest.json").readText()) as Map<String, Any?>)
+        manifest["name"] = name
+        manifest["title"] = title.ifBlank { name.replace('-', ' ').replace('_', ' ').replaceFirstChar { it.uppercase() } }
+        manifest["version"] = "0.1.0" // a new application's, not the sample's
+        folder.mkdirs()
+        File(folder, "manifest.json").writeText(Json.pretty(manifest) + "\n")
+        // The sample's code, without the line that says whose it is: the new one is its author's.
+        val source = File(folder, "$name.c")
+        source.writeText(File(sample, "hello.c").readLines().filterNot { it.startsWith(" * Copyright") }
+            .joinToString("\n", postfix = "\n"))
+        File(folder, CMAKE_LISTS).writeText(cmakeLists(name))
+        return source
+    }
+
     /** Settings changed: the toolchain file follows them, and open application projects reload. */
     fun settingsChanged() {
         if (!ToolchainFile.write()) {
@@ -129,11 +158,24 @@ object AppProject {
         }
         for (project in ProjectManager.getInstance().openProjects) {
             val folder = folderOf(project) ?: continue
+            writeHeaders(project, File(folder.path))
             if (listsOf(folder) == Lists.OURS) {
                 val lists = folder.findChild(CMAKE_LISTS)
                 loadCMake(project, lists, reload = true)
             }
         }
+    }
+
+    /** The headers are made again when a file of `strings` or `pictures` changes. */
+    fun watchStringsAndPictures(project: Project, appDir: File) {
+        val watched = listOf(File(appDir, "strings").path, File(appDir, "pictures").path)
+        project.messageBus.connect().subscribe(VirtualFileManager.VFS_CHANGES, object : BulkFileListener {
+            override fun after(events: List<VFileEvent>) {
+                if (events.any { event -> watched.any { event.path.startsWith(it) } }) {
+                    ApplicationManager.getApplication().executeOnPooledThread { writeHeaders(project, appDir) }
+                }
+            }
+        })
     }
 
     fun notify(project: Project, text: String, vararg actions: NotificationAction) {
@@ -149,6 +191,8 @@ class AppProjectActivity : ProjectActivity {
     override suspend fun execute(project: Project) {
         val folder = AppProject.folderOf(project) ?: return
         ToolchainFile.write()
+        AppProject.writeHeaders(project, File(folder.path))
+        AppProject.watchStringsAndPictures(project, File(folder.path))
         if (!Simulator.hasGlyphs()) {
             // Letters beyond ASCII for the simulator, quietly, once.
             ApplicationManager.getApplication().executeOnPooledThread { Simulator.fetchGlyphs(null) }
@@ -163,8 +207,8 @@ class AppProjectActivity : ProjectActivity {
                         AppProject.writeCMakeLists(project, folder)
                     })
                 AppProject.Lists.OTHER -> AppProject.notify(
-                    project, "This CMakeLists.txt does not read the plugin's settings: " +
-                        "CMake finds the SDK and wasi-sdk only through environment variables.",
+                    project, "This CMakeLists.txt is not the plugin's: CMake may not find the SDK, " +
+                        "wasi-sdk and the headers made of the strings and pictures.",
                     NotificationAction.createSimpleExpiring("Replace with the plugin's") {
                         AppProject.writeCMakeLists(project, folder)
                     })

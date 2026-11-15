@@ -12,12 +12,11 @@ import com.intellij.openapi.project.guessProjectDir
 import com.intellij.openapi.ui.InputValidator
 import com.intellij.openapi.ui.Messages
 import com.intellij.openapi.vfs.LocalFileSystem
-import org.perinkpheral.clion.settings.PerinkpheralSettings
-import org.perinkpheral.clion.toolchain.Toolchain
+import org.perinkpheral.clion.project.AppProject
 import org.perinkpheral.clion.toolchain.Tools
 import java.io.File
 
-/** Creates an application folder from the SDK sample with `devtool.py new`. */
+/** Creates an application folder from the SDK sample. */
 class NewApplicationAction : AnAction(), DumbAware {
     override fun actionPerformed(event: AnActionEvent) {
         val project = event.project ?: return
@@ -32,12 +31,10 @@ class NewApplicationAction : AnAction(), DumbAware {
                 override fun canClose(input: String): Boolean = checkInput(input)
             }) ?: return
         val folder = File(parent.path, name)
-        val settings = PerinkpheralSettings.get()
         ApplicationManager.getApplication().executeOnPooledThread {
             try {
-                Toolchain.run(File(parent.path), null, settings.pythonPath,
-                    settings.tool("tools/devtool/devtool.py").path, "new", folder.path)
-                val source = LocalFileSystem.getInstance().refreshAndFindFileByIoFile(File(folder, "$name.c"))
+                val created = AppProject.create(folder, "")
+                val source = LocalFileSystem.getInstance().refreshAndFindFileByIoFile(created)
                 parent.refresh(true, true)
                 if (source != null) {
                     ApplicationManager.getApplication().invokeLater {

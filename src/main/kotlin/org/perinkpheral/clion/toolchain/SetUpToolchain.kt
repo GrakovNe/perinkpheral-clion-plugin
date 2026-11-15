@@ -42,7 +42,6 @@ class SetUpToolchainTask(project: Project?) : Task.Backgroundable(project, "Sett
             settings.state.wasiSdkPath = Toolchain.fetchWasiSdk(home, indicator).path
             done += "wasi-sdk"
         }
-        Toolchain.run(null, indicator, settings.pythonPath, "--version")
         if (!Simulator.hasGlyphs()) {
             Simulator.fetchGlyphs(indicator)
             done += "glyph packs"
@@ -121,29 +120,31 @@ object Toolchain {
         return target
     }
 
-    /**
-     * A Python environment with esptool, made on first use in `~/.perinkpheral/venv`.
-     * Returns its interpreter.
-     */
+    private const val ESPTOOL_VERSION = "v5.6.0"
+
+    /** Espressif's own build of esptool, a program with no Python under it, unpacked on first use
+     * into `~/.perinkpheral`. Returns the program. */
     fun fetchEsptool(indicator: ProgressIndicator): File {
+        val arch = if (SystemInfo.isAarch64) (if (SystemInfo.isLinux) "aarch64" else "arm64") else "amd64"
+        val system = when {
+            SystemInfo.isMac -> "macos"
+            SystemInfo.isWindows -> "windows"
+            else -> "linux"
+        }
         val home = PerinkpheralSettings.managedDirectory()
-        val environment = File(home, "venv")
-        val python = File(environment, if (SystemInfo.isWindows) "Scripts/python.exe" else "bin/python")
-        if (!python.isFile) {
-            indicator.text = "Creating a Python environment"
-            home.mkdirs()
-            run(home, indicator, PerinkpheralSettings.get().pythonPath, "-m", "venv", environment.path)
-        }
-        val isInstalled = try {
-            run(home, null, python.path, "-m", "esptool", "version")
-            true
-        } catch (error: IOException) {
-            false
-        }
-        if (!isInstalled) {
-            indicator.text = "Installing esptool"
-            run(home, indicator, python.path, "-m", "pip", "install", "--disable-pip-version-check", "esptool>=5,<6")
-        }
-        return python
+        val folder = File(home, "esptool-$system-$arch")
+        val tool = File(folder, if (SystemInfo.isWindows) "esptool.exe" else "esptool")
+        if (tool.isFile) return tool
+        val archive = File(home, "esptool-$ESPTOOL_VERSION-$system-$arch" + if (SystemInfo.isWindows) ".zip" else ".tar.gz")
+        indicator.text = "Downloading esptool"
+        home.mkdirs()
+        HttpRequests.request("https://github.com/espressif/esptool/releases/download/$ESPTOOL_VERSION/${archive.name}")
+            .saveToFile(archive, indicator)
+        indicator.text = "Unpacking esptool"
+        run(home, indicator, "tar", "-xf", archive.path)
+        archive.delete()
+        if (!tool.isFile) throw IOException("esptool was not found in ${archive.name}")
+        tool.setExecutable(true)
+        return tool
     }
 }

@@ -14,8 +14,8 @@ import org.perinkpheral.clion.toolchain.Tools
 import java.io.File
 
 /**
- * Builds the application, installs it on the device and restarts the device into it:
- * `devtool.py run`. The application is the one the selected file belongs to, or the project.
+ * Builds the application, installs it on the device and restarts the device into it.
+ * The application is the one the selected file belongs to, or the project.
  */
 class UploadToDeviceAction : AnAction(), DumbAware {
     private fun folderOf(event: AnActionEvent): VirtualFile? =
@@ -37,8 +37,8 @@ class UploadToDeviceAction : AnAction(), DumbAware {
         val folder = folderOf(event) ?: return
         if (!Tools.requireToolchain(project, needsDevice = true)) return
         FileDocumentManager.getInstance().saveAllDocuments()
-        val commandLine = Tools.python("tools/devtool/devtool.py", "run", folder.path)
-            .withWorkDirectory(File(folder.path))
-        Tools.runInConsole(project, "Upload ${folder.name}", commandLine)
+        val directory = File(folder.path)
+        Tools.runInConsole(project, "Upload ${folder.name}", TaskProcessHandler { AppRuns.onDevice(this, directory) },
+            directory)
     }
 }

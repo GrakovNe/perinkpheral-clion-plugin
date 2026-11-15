@@ -15,6 +15,8 @@ import com.intellij.openapi.ui.Messages
 import com.intellij.openapi.vfs.LocalFileSystem
 import org.perinkpheral.clion.settings.PerinkpheralSettings
 import org.perinkpheral.clion.toolchain.Toolchain
+import org.perinkpheral.clion.run.AppRuns
+import org.perinkpheral.clion.run.TaskProcessHandler
 import org.perinkpheral.clion.toolchain.Tools
 import java.io.File
 import java.io.IOException
@@ -55,7 +57,7 @@ object Firmware {
     }
 }
 
-/** Sends an image to `/api/dev/flash` with `devtool.py flash`; the device restarts into it. */
+/** Sends an image to `/api/dev/flash`; the device restarts into it. */
 class FlashOverNetworkAction : AnAction(), DumbAware {
     override fun actionPerformed(event: AnActionEvent) {
         val project = event.project ?: return
@@ -67,7 +69,7 @@ class FlashOverNetworkAction : AnAction(), DumbAware {
             Tools.notify(project, error.message ?: "Invalid image.", NotificationType.ERROR)
             return
         }
-        Tools.runInConsole(project, "Upload Firmware", Tools.python("tools/devtool/devtool.py", "flash", image.path))
+        Tools.runInConsole(project, "Upload Firmware", TaskProcessHandler { AppRuns.flash(this, image) }, null)
     }
 }
 
@@ -104,15 +106,15 @@ class FlashOverUsbAction : AnAction(), DumbAware {
             "Upload Firmware over USB", null, "", null) ?: return
 
         object : Task.Backgroundable(project, "Preparing esptool", true) {
-            private lateinit var python: File
+            private lateinit var tool: File
 
             override fun run(indicator: ProgressIndicator) {
-                python = Toolchain.fetchEsptool(indicator)
+                tool = Toolchain.fetchEsptool(indicator)
             }
 
             override fun onSuccess() {
                 fun esptool(vararg arguments: String): GeneralCommandLine {
-                    val command = mutableListOf(python.path, "-m", "esptool", "--chip", "esp32c6")
+                    val command = mutableListOf(tool.path, "--chip", "esp32c6")
                     if (port.isNotBlank()) command += listOf("--port", port.trim())
                     return GeneralCommandLine(command + arguments)
                 }
