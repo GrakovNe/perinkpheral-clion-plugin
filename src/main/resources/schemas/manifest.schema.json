@@ -85,6 +85,11 @@
           "each": {
             "description": "Key of a list setting: one request for every item, {{key}} being the item; data_item() says which.",
             "$ref": "#/definitions/settingKey"
+          },
+          "prefix": {
+            "description": "With each: the poll takes only the items that begin with it, {{key}} being the item without it. A poll of the list without a prefix takes the items no other poll claims: one list, several sources (AAPL, MOEX:SBER).",
+            "type": "string",
+            "pattern": "^[!-~]{1,15}$"
           }
         }
       }

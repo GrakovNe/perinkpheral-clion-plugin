@@ -3,7 +3,7 @@
 # perINKpheral for CLion
 
 Development tools for the [perINKpheral](https://github.com/GrakovNe/perinkpheral) desk display.
-Status: preliminary, version 0.8.0. Two parts: the core - the build and its checks, the device
+Status: preliminary, version 0.8.1. Two parts: the core - the build and its checks, the device
 over the network, the simulator's network - is `tools/core` of the perinkpheral repository, the
 same that `tools/perinkpheral` runs from the command line; this plugin is what ties it to the IDE.
 All of it runs in the IDE's own process, with no Python.
