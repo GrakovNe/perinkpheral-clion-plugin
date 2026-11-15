@@ -148,6 +148,12 @@
       "description": "Address of the companion page.",
       "type": "string",
       "pattern": "^https://"
+    },
+    "certificates": {
+      "description": "Certificate authorities trusted for this application's own requests, beside the browsers' set: files of its files/ folder, each a root in PEM or DER, up to 4 KB. The web page names them before installation.",
+      "type": "array",
+      "maxItems": 2,
+      "items": { "type": "string", "pattern": "^[a-z0-9_-][a-z0-9._-]{0,22}$" }
     }
   }
 }
