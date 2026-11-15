@@ -4,7 +4,7 @@ package org.perinkpheral.clion.run
 import com.intellij.execution.process.ProcessHandler
 import com.intellij.execution.process.ProcessOutputTypes
 import com.intellij.util.concurrency.AppExecutorUtil
-import org.perinkpheral.clion.build.BuildError
+import org.perinkpheral.core.build.BuildError
 import java.io.IOException
 import java.io.OutputStream
 

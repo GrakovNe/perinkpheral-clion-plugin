@@ -20,7 +20,7 @@ import com.intellij.openapi.vfs.VirtualFile
 import com.intellij.openapi.vfs.VirtualFileManager
 import com.intellij.openapi.vfs.newvfs.BulkFileListener
 import com.intellij.openapi.vfs.newvfs.events.VFileEvent
-import org.perinkpheral.clion.build.Json
+import org.perinkpheral.core.app.Applications
 import org.perinkpheral.clion.manifest.isApplicationFolder
 import org.perinkpheral.clion.settings.PerinkpheralSettings
 import org.perinkpheral.clion.run.AppRunConfiguration
@@ -32,8 +32,8 @@ import java.io.File
 object AppProject {
     const val CMAKE_LISTS = "CMakeLists.txt"
 
-    /** Marks a CMakeLists.txt this plugin wrote: it reads the plugin's app.cmake. */
-    private const val MARK = ".perinkpheral/app.cmake"
+    /** Marks a CMakeLists.txt this plugin wrote: it reads the plugin's settings. */
+    private const val MARK = ".perinkpheral/toolchain.cmake"
 
     /** The application folder the project is, or null. */
     fun folderOf(project: Project): VirtualFile? = project.guessProjectDir()?.takeIf { isApplicationFolder(it) }
@@ -45,17 +45,22 @@ object AppProject {
         |# on the device or in the simulator.
         |cmake_minimum_required(VERSION 3.20)
         |
-        |# The SDK and wasi-sdk, from the plugin's settings.
+        |# The SDK, wasi-sdk and the device, from the plugin's settings; without the plugin, the
+        |# environment: PERINKPHERAL, WASI_SDK_PATH, PERINKPHERAL_HOST.
         |foreach(home "${'$'}ENV{HOME}" "${'$'}ENV{USERPROFILE}")
         |    if(home AND EXISTS "${'$'}{home}/$MARK")
         |        include("${'$'}{home}/$MARK")
         |        break()
         |    endif()
         |endforeach()
-        |if(NOT COMMAND perinkpheral_app)
-        |    message(FATAL_ERROR "Open this application in CLion with the perINKpheral plugin: "
-        |                        "it writes ~/$MARK from Settings | Tools | perINKpheral.")
+        |if(NOT PERINKPHERAL AND DEFINED ENV{PERINKPHERAL})
+        |    set(PERINKPHERAL "${'$'}ENV{PERINKPHERAL}")
         |endif()
+        |if(NOT EXISTS "${'$'}{PERINKPHERAL}/sdk/cmake/perinkpheral.cmake")
+        |    message(FATAL_ERROR "The perinkpheral SDK is not found. Set it in Settings | Tools | perINKpheral, "
+        |                        "or set PERINKPHERAL to a checkout of the perinkpheral repository.")
+        |endif()
+        |include("${'$'}{PERINKPHERAL}/sdk/cmake/perinkpheral.cmake")
         |
         |project($name C)
         |perinkpheral_app(.)
@@ -131,25 +136,10 @@ object AppProject {
         if (project != null) notify(project, problem)
     }
 
-    /** A new application in `folder`: the SDK's sample under its name, a manifest of its own,
-     * and a CMakeLists.txt. Returns its source file. */
-    fun create(folder: File, title: String): File {
-        val sample = File(PerinkpheralSettings.get().sdkPath, "sdk/apps/hello")
-        val name = folder.name
-        @Suppress("UNCHECKED_CAST")
-        val manifest = LinkedHashMap(Json.parse(File(sample, "manifest.json").readText()) as Map<String, Any?>)
-        manifest["name"] = name
-        manifest["title"] = title.ifBlank { name.replace('-', ' ').replace('_', ' ').replaceFirstChar { it.uppercase() } }
-        manifest["version"] = "0.1.0" // a new application's, not the sample's
-        folder.mkdirs()
-        File(folder, "manifest.json").writeText(Json.pretty(manifest) + "\n")
-        // The sample's code, without the line that says whose it is: the new one is its author's.
-        val source = File(folder, "$name.c")
-        source.writeText(File(sample, "hello.c").readLines().filterNot { it.startsWith(" * Copyright") }
-            .joinToString("\n", postfix = "\n"))
-        File(folder, CMAKE_LISTS).writeText(cmakeLists(name))
-        return source
-    }
+    /** A new application in `folder`: the SDK's sample under its name, with the plugin's
+     * CMakeLists.txt. Returns its source file. */
+    fun create(folder: File, title: String): File =
+        Applications.create(File(PerinkpheralSettings.get().sdkPath), folder, title, ::cmakeLists)
 
     /** Settings changed: the toolchain file follows them, and open application projects reload. */
     fun settingsChanged() {
@@ -207,8 +197,8 @@ class AppProjectActivity : ProjectActivity {
                         AppProject.writeCMakeLists(project, folder)
                     })
                 AppProject.Lists.OTHER -> AppProject.notify(
-                    project, "This CMakeLists.txt is not the plugin's: CMake may not find the SDK, " +
-                        "wasi-sdk and the headers made of the strings and pictures.",
+                    project, "This CMakeLists.txt does not read the plugin's settings: CMake finds the SDK and " +
+                        "wasi-sdk only through environment variables.",
                     NotificationAction.createSimpleExpiring("Replace with the plugin's") {
                         AppProject.writeCMakeLists(project, folder)
                     })

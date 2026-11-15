@@ -3,8 +3,13 @@
 # perINKpheral for CLion
 
 Development tools for the [perINKpheral](https://github.com/GrakovNe/perinkpheral) desk display.
-Status: preliminary, version 0.5.0. Written in Kotlin, with no Python under it: the build, the
-checks, the upload and the simulator's network run in the IDE's own process.
+Status: preliminary, version 0.6.0. Two parts: the core - the build and its checks, the device
+over the network, the simulator's network - is `tools/core` of the perinkpheral repository, the
+same that `tools/perinkpheral` runs from the command line; this plugin is what ties it to the IDE.
+All of it runs in the IDE's own process, with no Python.
+
+Building the plugin needs a checkout of perinkpheral beside this one (`../perinkpheral`), or
+`-PperinkpheralPath=<checkout>`: Gradle builds the core from it.
 
 ## Functions
 
@@ -13,9 +18,9 @@ checks, the upload and the simulator's network run in the IDE's own process.
 | Toolchain setup | Tools, perINKpheral, Set Up Toolchain | Downloads the SDK checkout and wasi-sdk 34 into `~/.perinkpheral`. Paths that are set and valid are kept. |
 | Settings | Settings, Tools, perINKpheral | SDK checkout, wasi-sdk, device address, the simulator's language and font. |
 | New application | Tools, perINKpheral, New Application | Creates an application folder from the SDK sample. |
-| Application project | Opening an application folder | A folder with `manifest.json` and C sources opens as a CMake project. Without a CMakeLists.txt the plugin offers to write one; it reads `~/.perinkpheral/app.cmake`, which the plugin writes from its settings: CMake compiles the code with clang of wasi-sdk and the build's flags. `strings.h` and `pictures.h` are made by the plugin into `~/.perinkpheral/generated/<name>` when the project opens and when a file of `strings` or `pictures` changes. A run configuration is created and selected. |
+| Application project | Opening an application folder | A folder with `manifest.json` and C sources opens as a CMake project. Without a CMakeLists.txt the plugin offers to write one; it reads the plugin's settings from `~/.perinkpheral/toolchain.cmake` and the SDK's module, `sdk/cmake/perinkpheral.cmake`: CMake compiles the code with clang of wasi-sdk and the build's flags. `strings.h` and `pictures.h` are made by the plugin into `~/.perinkpheral/generated/<name>` when the project opens and when a file of `strings` or `pictures` changes. A run configuration is created and selected. |
 | Upload to Device | Tools, perINKpheral; the context menu of a file | Builds the application, installs it on the device and restarts the device into it. |
-| Run | Run configuration "perINKpheral Application" | Builds the application - compiled with clang, checked by the rules the device applies, measured as tools/mkapp measures it - uploads it and restarts the device into it. Offered from the context menu of any file of an application folder. Compiler messages are links. |
+| Run | Run configuration "perINKpheral Application" | Builds the application - compiled with clang, checked by the rules the device applies, measured against what the device has - uploads it and restarts the device into it. Offered from the context menu of any file of an application folder. Compiler messages are links. |
 | Simulator | Run configuration "<name> (simulator)" | The application runs on this computer in the firmware's own interpreter, host API and kit: the frame is the device's. The device window shows it while it runs, with Background, Foreground, the three intents, Alarm 0 and +15 min. The network is the IDE's own, the local network included; a mocks file replaces answers. The simulator is in the plugin for macOS (arm64, x86_64) and Linux (x86_64, aarch64). Not on Windows yet. |
 | Device | Tool window "perINKpheral" | Live screen, the four buttons (Shift+click: long press), a screenshot (PNG file and clipboard), status, log. |
 | Manifest | `manifest.json` of an application folder | Validation, completion and descriptions by JSON schema. |

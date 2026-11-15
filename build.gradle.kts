@@ -11,6 +11,10 @@ kotlin {
 }
 
 dependencies {
+    // The IDE has Kotlin's library of its own.
+    implementation("org.perinkpheral:perinkpheral-core:0.1.0") {
+        exclude(group = "org.jetbrains.kotlin")
+    }
     intellijPlatform {
         // -PclionPath=/Applications/CLion.app builds against an installed CLion and downloads nothing.
         val installed = providers.gradleProperty("clionPath").orNull

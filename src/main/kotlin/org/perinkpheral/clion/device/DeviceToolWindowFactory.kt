@@ -20,6 +20,8 @@ import com.intellij.ui.content.ContentFactory
 import com.intellij.util.concurrency.AppExecutorUtil
 import com.intellij.util.ui.JBUI
 import org.perinkpheral.clion.settings.PerinkpheralSettings
+import org.perinkpheral.core.device.DeviceButton
+import org.perinkpheral.core.device.DeviceClient
 import org.perinkpheral.clion.simulator.Simulator
 import java.awt.BorderLayout
 import java.awt.Dimension

@@ -13,7 +13,7 @@ import java.io.IOException
  *
  * The plugin carries the binary for macOS (one for arm64 and x86_64) and for Linux
  * on x86_64 and aarch64 (static, any distribution); the one for this computer is put
- * in `~/.perinkpheral/simulator/bin`. Its network is the plugin's own (SimulatorNetwork).
+ * in `~/.perinkpheral/simulator/bin`. Its network is the plugin's own (the core's SimulatorNetwork).
  * Windows is not supported yet.
  */
 object Simulator {
