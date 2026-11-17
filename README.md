@@ -8,8 +8,8 @@ Includes toolchain setup, application builds, device access and a simulator.
 [Plugin documentation](https://perinkpheral.dev/sdk#clion) -
 [Developer documentation](https://perinkpheral.dev/sdk).
 Application guide (PDF):
-[English](https://raw.githubusercontent.com/GrakovNe/perinkpheral/main/docs/guide/perinkpheral-app-guide.pdf),
-[Russian](https://raw.githubusercontent.com/GrakovNe/perinkpheral/main/docs/guide/perinkpheral-app-guide.ru.pdf).
+[English](https://github.com/GrakovNe/perinkpheral/releases/latest/download/perinkpheral-app-guide.pdf),
+[Russian](https://github.com/GrakovNe/perinkpheral/releases/latest/download/perinkpheral-app-guide.ru.pdf).
 
 ## Requirements
 
