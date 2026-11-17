@@ -1,0 +1,33 @@
+# Every push and pull request: the plugin built, tested and checked against the core of the
+# perinkpheral repository's main, and the plugin's archive kept as the run's artifact.
+
+name: CI
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/checkout@v5
+        with:
+          repository: GrakovNe/perinkpheral
+          path: perinkpheral
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: 21
+      - uses: gradle/actions/setup-gradle@v4
+      - name: Build and test
+        run: ./gradlew --no-daemon -PperinkpheralPath=perinkpheral buildPlugin test
+      - uses: actions/upload-artifact@v4
+        with:
+          name: perinkpheral-clion-plugin
+          path: build/distributions/*.zip
