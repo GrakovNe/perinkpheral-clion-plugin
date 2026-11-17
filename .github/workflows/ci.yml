@@ -1,5 +1,10 @@
 # Every push and pull request: the plugin built, tested and checked against the core of the
-# perinkpheral repository's main, and the plugin's archive kept as the run's artifact.
+# perinkpheral repository's main, its archive kept as the run's artifact.
+#
+# Every push to main is a release, once that passes: the next version - pluginVersion of
+# gradle.properties, or the last release's with its patch one up, whichever is greater - with
+# the plugin's archive, its notes the commits since the release before. A push elsewhere
+# builds the same as <version>-<commit>.
 
 name: CI
 
@@ -9,13 +14,19 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: read
+  contents: write
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
 
 jobs:
   build:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
       - uses: actions/checkout@v5
         with:
           repository: GrakovNe/perinkpheral
@@ -25,9 +36,40 @@ jobs:
           distribution: temurin
           java-version: 21
       - uses: gradle/actions/setup-gradle@v4
+      - name: Version
+        id: version
+        run: |
+          base=$(sed -n 's/^pluginVersion *= *//p' gradle.properties | tr -d '[:space:]')
+          last=$(git tag -l 'v[0-9]*' --sort=-v:refname | head -1 | sed 's/^v//')
+          next=$base
+          if [ -n "$last" ]; then
+            IFS=. read -r major minor patch <<< "$last"
+            next=$(printf '%s\n%s\n' "$base" "$major.$minor.$((patch + 1))" | sort -V | tail -1)
+          fi
+          build="$next-${GITHUB_SHA::7}"
+          release=false
+          if [ "$GITHUB_EVENT_NAME" = push ] && [ "$GITHUB_REF" = refs/heads/main ]; then
+            build=$next
+            release=true
+          fi
+          echo "next=$next" >> "$GITHUB_OUTPUT"
+          echo "build=$build" >> "$GITHUB_OUTPUT"
+          echo "release=$release" >> "$GITHUB_OUTPUT"
+          echo "last=$last" >> "$GITHUB_OUTPUT"
       - name: Build and test
-        run: ./gradlew --no-daemon -PperinkpheralPath=perinkpheral buildPlugin test
+        run: ./gradlew --no-daemon -PperinkpheralPath=perinkpheral -PpluginVersion=${{ steps.version.outputs.build }} buildPlugin test
       - uses: actions/upload-artifact@v4
         with:
           name: perinkpheral-clion-plugin
           path: build/distributions/*.zip
+      - name: Release
+        if: steps.version.outputs.release == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          VERSION: ${{ steps.version.outputs.next }}
+          LAST: ${{ steps.version.outputs.last }}
+        run: |
+          git log --no-merges --format='- %s' ${LAST:+v$LAST..}HEAD > notes.md
+          printf '\nInstall it with Settings, Plugins, Install Plugin from Disk.\n' >> notes.md
+          gh release create "v$VERSION" build/distributions/*.zip --repo "$GITHUB_REPOSITORY" \
+            --target "$GITHUB_SHA" --title "$VERSION" --notes-file notes.md
