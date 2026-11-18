@@ -14,10 +14,11 @@ Application guide (PDF):
 ## Requirements
 
 CLion 2026.2 or later. Set Up Toolchain downloads the SDK and wasi-sdk;
-git must be on `PATH`. Device access over the network requires firmware
-with `APP_DEV_CONSOLE` enabled. The bundled simulator supports macOS and Linux.
-Update an existing SDK checkout before using this version: generated headers
-are now kept separately for each application checkout.
+git must be on `PATH`. Screen capture, button injection and development uploads
+require firmware with `APP_DEV_CONSOLE` enabled. Status, logs and firmware updates
+also work with release firmware. The bundled simulator supports macOS and Linux.
+Update an existing SDK checkout before using this plugin. Generated headers are
+stored separately for each application checkout.
 
 ## Build
 
@@ -32,6 +33,9 @@ Requires Java 21 and a sibling `../perinkpheral` checkout for `tools/core`.
 The plugin archive is written to `build/distributions/`.
 Installation: Settings - Plugins - Install Plugin from Disk.
 
+When upgrading from the old `org.perinkpheral.clion` plugin, uninstall it before
+installing this `dev.perinkpheral.clion` build; the IDE treats the IDs as separate plugins.
+
 CI builds and tests every push. Each successful push to `main` releases the plugin archive.
 
 ## Related sources
@@ -45,7 +49,7 @@ CI builds and tests every push. Each successful push to `main` releases the plug
 
 ## Repository
 
-- `src/main/kotlin/org/perinkpheral/clion/` - IDE actions, settings, run configurations and device tools.
+- `src/main/kotlin/dev/perinkpheral/clion/` - IDE actions, settings, run configurations and device tools.
 - `src/main/resources/simulator/` - bundled simulator binaries.
 - `src/main/resources/schemas/` - application manifest schema.
 - `gradle.properties` - plugin version and CLion compatibility.

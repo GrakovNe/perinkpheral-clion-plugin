@@ -13,7 +13,7 @@ kotlin {
 dependencies {
     testImplementation(kotlin("test-junit"))
     // The IDE has Kotlin's library of its own.
-    implementation("org.perinkpheral:perinkpheral-core:0.1.0") {
+    implementation("dev.perinkpheral:perinkpheral-core:0.1.0") {
         exclude(group = "org.jetbrains.kotlin")
     }
     intellijPlatform {
