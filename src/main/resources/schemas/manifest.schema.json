@@ -36,16 +36,16 @@
       "maxLength": 15
     },
     "abi": {
-      "description": "Host API version the application is built for.",
+      "description": "Perinkpheral OS API version the application is built for.",
       "const": 3
     },
     "firmware": {
-      "description": "The oldest firmware the application runs on. Written by the build from the host calls the module makes; given here, it may only be later.",
+      "description": "The oldest firmware the application runs on. Written by the build from the Perinkpheral OS calls the module makes; given here, it may only be later.",
       "type": "string",
       "pattern": "^[0-9]{1,3}\\.[0-9]{1,3}\\.[0-9]{1,3}$"
     },
     "fullscreen": {
-      "description": "true: 400x300 without the host header. false: 400x260 under the header.",
+      "description": "true: 400x300 without the Perinkpheral OS header. false: 400x260 under the header.",
       "type": "boolean",
       "default": false
     },
@@ -62,7 +62,7 @@
       "items": { "type": "string", "pattern": "^[#.]{11}$" }
     },
     "polls": {
-      "description": "Requests the host repeats. The application receives each by its index.",
+      "description": "Requests Perinkpheral OS repeats. The application receives each by its index.",
       "type": "array",
       "maxItems": 4,
       "items": {
@@ -89,7 +89,7 @@
             "additionalProperties": { "type": "string", "maxLength": 255 }
           },
           "pick": {
-            "description": "JSON paths the host extracts, delivered through app_on_picked(). \"[*]\" once in a path: every element of an array, read with answer_count() and answer_element().",
+            "description": "JSON paths Perinkpheral OS extracts, delivered through app_on_picked(). \"[*]\" once in a path: every element of an array, read with answer_count() and answer_element().",
             "type": "array",
             "maxItems": 16,
             "items": { "type": "string", "minLength": 1, "maxLength": 63 }
