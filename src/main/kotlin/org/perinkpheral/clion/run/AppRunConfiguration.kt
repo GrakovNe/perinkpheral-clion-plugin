@@ -136,16 +136,18 @@ class AppRunConfiguration(project: Project, factory: ConfigurationFactory, name:
                     throw ExecutionException("Toolchain is not set up.")
                 }
                 FileDocumentManager.getInstance().saveAllDocuments()
+                val session = if (inSimulator) Simulator.sessions.claim(Simulator.HOST)
+                    ?: throw ExecutionException("A simulator is already running. Stop it before starting another.")
+                    else null
                 val mocks = mocksFile
                 val handler = if (inSimulator) TaskProcessHandler { AppRuns.inSimulator(this, folder, mocks) }
                               else TaskProcessHandler { AppRuns.onDevice(this, folder) }
                 ProcessTerminatedListener.attach(handler)
                 if (inSimulator) {
                     // While it runs, the device window and the tools look at the simulator.
-                    Simulator.activeHost = Simulator.HOST
                     handler.addProcessListener(object : ProcessListener {
                         override fun processTerminated(event: ProcessEvent) {
-                            Simulator.activeHost = null
+                            session?.close()
                         }
                     })
                 }

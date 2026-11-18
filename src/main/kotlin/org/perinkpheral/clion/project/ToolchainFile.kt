@@ -12,7 +12,7 @@ import java.io.File
  * else, and then the SDK's own module, sdk/cmake/perinkpheral.cmake: CMake finds the SDK,
  * wasi-sdk and the device without environment variables - CLion does not start from a shell -
  * the build's flags as the core has them, and the headers made of the strings and pictures
- * where the plugin puts them, `~/.perinkpheral/generated/<name>`. Nothing of it asks for Java.
+ * where the plugin puts them, under the canonical application path's hash. Nothing asks for Java.
  */
 object ToolchainFile {
     const val NAME = "toolchain.cmake"
@@ -22,7 +22,7 @@ object ToolchainFile {
     private val generatedRoot: File get() = File(PerinkpheralSettings.managedDirectory(), "generated")
 
     /** Where the headers made of an application's strings and pictures go. */
-    fun generated(name: String): File = File(generatedRoot, name)
+    fun generated(appDir: File): File = GeneratedFiles.directory(generatedRoot, appDir)
 
     /** CMake's own spelling of a path: forward slashes on every system. */
     private fun cmakePath(path: String): String = path.replace('\\', '/').replace("\"", "\\\"")
@@ -47,6 +47,13 @@ object ToolchainFile {
             }
             // strings.h and pictures.h: made by the plugin, not by the command line.
             appendLine("set(PERINKPHERAL_GENERATED \"${cmakePath(generatedRoot.path)}\")")
+            appendLine("set(${GeneratedFiles.CMAKE_OPTION} ON)")
+            appendLine("if(EXISTS \"\${PERINKPHERAL}/sdk/cmake/perinkpheral.cmake\")")
+            appendLine("    file(STRINGS \"\${PERINKPHERAL}/sdk/cmake/perinkpheral.cmake\" perinkpheral_generated_support REGEX \"${GeneratedFiles.CMAKE_OPTION}\")")
+            appendLine("    if(NOT perinkpheral_generated_support)")
+            appendLine("        message(FATAL_ERROR \"${GeneratedFiles.SDK_UPDATE}\")")
+            appendLine("    endif()")
+            appendLine("endif()")
             // The build's flags, so that what CLion compiles is what the device gets.
             val compile = BuildFlags.cmake(listOf(BuildFlags.TARGET) + BuildFlags.compile)
             val link = BuildFlags.cmake(listOf(BuildFlags.TARGET) + BuildFlags.link)
@@ -67,7 +74,8 @@ object ToolchainFile {
         val settings = PerinkpheralSettings.get()
         if (!settings.isSdkValid) return null
         return try {
-            settings.builder {}.headers(appDir, generated(appDir.name))
+            GeneratedFiles.requireSdkSupport(File(settings.sdkPath))
+            settings.builder {}.headers(appDir, generated(appDir))
             null
         } catch (error: Exception) {
             error.message ?: error.javaClass.simpleName

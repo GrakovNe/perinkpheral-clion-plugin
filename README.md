@@ -16,6 +16,8 @@ Application guide (PDF):
 CLion 2026.2 or later. Set Up Toolchain downloads the SDK and wasi-sdk;
 git must be on `PATH`. Device access over the network requires firmware
 with `APP_DEV_CONSOLE` enabled. The bundled simulator supports macOS and Linux.
+Update an existing SDK checkout before using this version: generated headers
+are now kept separately for each application checkout.
 
 ## Build
 

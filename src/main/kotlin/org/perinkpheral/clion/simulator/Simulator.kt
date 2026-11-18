@@ -23,8 +23,8 @@ object Simulator {
     private val GLYPH_PACKS = listOf("latin", "cyrillic", "greek")
 
     /** The host the device window and the tools talk to while a simulator runs; null otherwise. */
-    @Volatile
-    var activeHost: String? = null
+    val sessions = SimulatorSessions()
+    val activeHost: String? get() = sessions.activeHost
 
     /** Where the simulator keeps its binary, its glyph packs and a state an application. */
     fun home(): File = File(PerinkpheralSettings.managedDirectory(), "simulator")
