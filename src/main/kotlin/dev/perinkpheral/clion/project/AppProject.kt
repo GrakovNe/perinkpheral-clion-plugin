@@ -145,8 +145,8 @@ object AppProject {
 
     /** A new application in `folder`: the SDK's sample under its name, with the plugin's
      * CMakeLists.txt. Returns its source file. */
-    fun create(folder: File, title: String): File =
-        Applications.create(File(PerinkpheralSettings.get().sdkPath), folder, title, ::cmakeLists)
+    fun create(folder: File, title: String, author: String): File =
+        Applications.create(File(PerinkpheralSettings.get().sdkPath), folder, title, author, ::cmakeLists)
 
     /** Settings changed: the toolchain file follows them, and open application projects reload. */
     fun settingsChanged() {

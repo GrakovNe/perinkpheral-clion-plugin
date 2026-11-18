@@ -10,10 +10,15 @@ import com.intellij.openapi.fileEditor.FileEditorManager
 import com.intellij.openapi.project.DumbAware
 import com.intellij.openapi.project.guessProjectDir
 import com.intellij.openapi.ui.InputValidator
+import com.intellij.openapi.ui.InputValidatorEx
 import com.intellij.openapi.ui.Messages
 import com.intellij.openapi.vfs.LocalFileSystem
 import dev.perinkpheral.clion.project.AppProject
+import dev.perinkpheral.clion.settings.PerinkpheralSettings
 import dev.perinkpheral.clion.toolchain.Tools
+import dev.perinkpheral.core.BuildError
+import dev.perinkpheral.core.build.ManifestAuthor
+import dev.perinkpheral.core.build.Sdk
 import java.io.File
 
 /** Creates an application folder from the SDK sample. */
@@ -30,10 +35,27 @@ class NewApplicationAction : AnAction(), DumbAware {
                     Regex("[a-z0-9_-]{1,13}").matches(input) && !File(parent.path, input).exists()
                 override fun canClose(input: String): Boolean = checkInput(input)
             }) ?: return
+        val authorRules = try {
+            ManifestAuthor(Sdk(File(PerinkpheralSettings.get().sdkPath)))
+        } catch (error: Exception) {
+            Tools.notify(project, error.message ?: "SDK could not be read.", NotificationType.ERROR)
+            return
+        }
+        val author = Messages.showInputDialog(project, "Author shown in the catalog:", "Application Author",
+            null, "", object : InputValidatorEx {
+                override fun getErrorText(input: String): String? = try {
+                    authorRules.checkPersonal(input)
+                    null
+                } catch (error: BuildError) {
+                    error.message
+                }
+                override fun checkInput(input: String): Boolean = getErrorText(input) == null
+                override fun canClose(input: String): Boolean = checkInput(input)
+            }) ?: return
         val folder = File(parent.path, name)
         ApplicationManager.getApplication().executeOnPooledThread {
             try {
-                val created = AppProject.create(folder, "")
+                val created = AppProject.create(folder, "", author)
                 val source = LocalFileSystem.getInstance().refreshAndFindFileByIoFile(created)
                 parent.refresh(true, true)
                 if (source != null) {
