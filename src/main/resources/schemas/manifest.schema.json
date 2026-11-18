@@ -2,7 +2,7 @@
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "perINKpheral application manifest",
   "type": "object",
-  "required": ["name", "title", "version", "abi"],
+  "required": ["name", "title", "author", "version", "abi"],
   "definitions": {
     "settingKey": {
       "type": "string",
@@ -23,6 +23,13 @@
       "minLength": 1,
       "maxLength": 23
     },
+    "author": {
+      "description": "Application author, required for new applications and publication. Up to 63 UTF-8 bytes, without ASCII control characters or leading/trailing spaces. Perinkpheral is reserved for official applications.",
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 63,
+      "pattern": "^(?! )[^\\u0000-\\u001f\\u007f]*[^ \\u0000-\\u001f\\u007f]$"
+    },
     "version": {
       "type": "string",
       "minLength": 1,
@@ -30,7 +37,7 @@
     },
     "abi": {
       "description": "Host API version the application is built for.",
-      "const": 2
+      "const": 3
     },
     "firmware": {
       "description": "The oldest firmware the application runs on. Written by the build from the host calls the module makes; given here, it may only be later.",
@@ -82,13 +89,13 @@
             "additionalProperties": { "type": "string", "maxLength": 255 }
           },
           "pick": {
-            "description": "JSON paths the host extracts, delivered through app_on_values(). \"[*]\" once in a path: every element of an array, read with data_count() and data_element().",
+            "description": "JSON paths the host extracts, delivered through app_on_picked(). \"[*]\" once in a path: every element of an array, read with answer_count() and answer_element().",
             "type": "array",
             "maxItems": 16,
             "items": { "type": "string", "minLength": 1, "maxLength": 63 }
           },
           "each": {
-            "description": "Key of a list setting: one request for every item, {{key}} being the item; data_item() says which.",
+            "description": "Key of a list setting: one request for every item, {{key}} being the item; answer_item() says which.",
             "$ref": "#/definitions/settingKey"
           },
           "prefix": {
@@ -100,7 +107,7 @@
       }
     },
     "hosts": {
-      "description": "Hosts http_request() may address. \"{{key}}\" names a url or link setting.",
+      "description": "Hosts http_send() may address. \"{{key}}\" names a url or link setting.",
       "type": "array",
       "maxItems": 4,
       "items": { "type": "string", "minLength": 1, "maxLength": 63 }

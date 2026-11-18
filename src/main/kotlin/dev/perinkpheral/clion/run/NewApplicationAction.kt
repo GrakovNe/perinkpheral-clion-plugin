@@ -1,0 +1,71 @@
+// SPDX-License-Identifier: MIT
+package dev.perinkpheral.clion.run
+
+import com.intellij.notification.NotificationType
+import com.intellij.openapi.actionSystem.AnAction
+import com.intellij.openapi.actionSystem.AnActionEvent
+import com.intellij.openapi.actionSystem.CommonDataKeys
+import com.intellij.openapi.application.ApplicationManager
+import com.intellij.openapi.fileEditor.FileEditorManager
+import com.intellij.openapi.project.DumbAware
+import com.intellij.openapi.project.guessProjectDir
+import com.intellij.openapi.ui.InputValidator
+import com.intellij.openapi.ui.InputValidatorEx
+import com.intellij.openapi.ui.Messages
+import com.intellij.openapi.vfs.LocalFileSystem
+import dev.perinkpheral.clion.project.AppProject
+import dev.perinkpheral.clion.settings.PerinkpheralSettings
+import dev.perinkpheral.clion.toolchain.Tools
+import dev.perinkpheral.core.BuildError
+import dev.perinkpheral.core.build.ManifestAuthor
+import dev.perinkpheral.core.build.Sdk
+import java.io.File
+
+/** Creates an application folder from the SDK sample. */
+class NewApplicationAction : AnAction(), DumbAware {
+    override fun actionPerformed(event: AnActionEvent) {
+        val project = event.project ?: return
+        if (!Tools.requireToolchain(project, needsDevice = false)) return
+        val selected = event.getData(CommonDataKeys.VIRTUAL_FILE)
+        val parent = (if (selected != null && selected.isDirectory) selected else project.guessProjectDir())
+            ?: return
+        val name = Messages.showInputDialog(project, "Name (1-13 of a-z, 0-9, '-', '_'):", "New Application",
+            null, "", object : InputValidator {
+                override fun checkInput(input: String): Boolean =
+                    Regex("[a-z0-9_-]{1,13}").matches(input) && !File(parent.path, input).exists()
+                override fun canClose(input: String): Boolean = checkInput(input)
+            }) ?: return
+        val authorRules = try {
+            ManifestAuthor(Sdk(File(PerinkpheralSettings.get().sdkPath)))
+        } catch (error: Exception) {
+            Tools.notify(project, error.message ?: "SDK could not be read.", NotificationType.ERROR)
+            return
+        }
+        val author = Messages.showInputDialog(project, "Author shown in the catalog:", "Application Author",
+            null, "", object : InputValidatorEx {
+                override fun getErrorText(input: String): String? = try {
+                    authorRules.checkPersonal(input)
+                    null
+                } catch (error: BuildError) {
+                    error.message
+                }
+                override fun checkInput(input: String): Boolean = getErrorText(input) == null
+                override fun canClose(input: String): Boolean = checkInput(input)
+            }) ?: return
+        val folder = File(parent.path, name)
+        ApplicationManager.getApplication().executeOnPooledThread {
+            try {
+                val created = AppProject.create(folder, "", author)
+                val source = LocalFileSystem.getInstance().refreshAndFindFileByIoFile(created)
+                parent.refresh(true, true)
+                if (source != null) {
+                    ApplicationManager.getApplication().invokeLater {
+                        FileEditorManager.getInstance(project).openFile(source, true)
+                    }
+                }
+            } catch (error: Exception) {
+                Tools.notify(project, error.message ?: "Application was not created.", NotificationType.ERROR)
+            }
+        }
+    }
+}
