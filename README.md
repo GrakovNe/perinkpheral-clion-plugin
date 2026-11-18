@@ -41,7 +41,7 @@ CI builds and tests every push. Each successful push to `main` releases the plug
 ## Related sources
 
 - [Firmware, SDK and shared Kotlin core](https://github.com/GrakovNe/perinkpheral):
-  the host contract, application builder and device client used by this plugin.
+  the Perinkpheral OS contract, application builder and device client used by this plugin.
 - [Application examples and tests](https://github.com/GrakovNe/perinkpheral-apps).
 - [Portal source](https://github.com/GrakovNe/perinkpheral-dev-portal): the public
   SDK pages linked above. Keep shared tool behavior in `tools/core`, not a second
