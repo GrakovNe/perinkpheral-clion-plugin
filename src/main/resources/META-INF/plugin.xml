@@ -1,7 +1,7 @@
 <idea-plugin>
     <id>dev.perinkpheral.clion</id>
     <name>perINKpheral</name>
-    <vendor url="https://github.com/GrakovNe/perinkpheral">GrakovNe</vendor>
+    <vendor url="https://github.com/Perinkpheral/perinkpheral">Perinkpheral</vendor>
     <description><![CDATA[
         <p>Development tools for the perINKpheral desk display.</p>
         <ul>

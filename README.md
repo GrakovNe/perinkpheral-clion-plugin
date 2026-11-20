@@ -8,8 +8,8 @@ Includes toolchain setup, application builds, device access and a simulator.
 [Plugin documentation](https://perinkpheral.dev/sdk#clion) -
 [Developer documentation](https://perinkpheral.dev/sdk).
 Application guide (PDF):
-[English](https://github.com/GrakovNe/perinkpheral/releases/latest/download/perinkpheral-app-guide.pdf),
-[Russian](https://github.com/GrakovNe/perinkpheral/releases/latest/download/perinkpheral-app-guide.ru.pdf).
+[English](https://github.com/Perinkpheral/perinkpheral/releases/latest/download/perinkpheral-app-guide.pdf),
+[Russian](https://github.com/Perinkpheral/perinkpheral/releases/latest/download/perinkpheral-app-guide.ru.pdf).
 
 ## Requirements
 
@@ -40,10 +40,10 @@ CI builds and tests every push. Each successful push to `main` releases the plug
 
 ## Related sources
 
-- [Firmware, SDK and shared Kotlin core](https://github.com/GrakovNe/perinkpheral):
+- [Firmware, SDK and shared Kotlin core](https://github.com/Perinkpheral/perinkpheral):
   the Perinkpheral OS contract, application builder and device client used by this plugin.
-- [Application examples and tests](https://github.com/GrakovNe/perinkpheral-apps).
-- [Portal source](https://github.com/GrakovNe/perinkpheral-dev-portal): the public
+- [Application examples and tests](https://github.com/Perinkpheral/perinkpheral-apps).
+- [Portal source](https://github.com/Perinkpheral/perinkpheral-dev-portal): the public
   SDK pages linked above. Keep shared tool behavior in `tools/core`, not a second
   implementation in the plugin.
 

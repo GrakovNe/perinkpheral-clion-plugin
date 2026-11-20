@@ -19,7 +19,7 @@ import java.io.IOException
 object Simulator {
     const val PORT = 8401
     const val HOST = "127.0.0.1:$PORT"
-    private const val GLYPHS_URL = "https://raw.githubusercontent.com/GrakovNe/perinkpheral-apps/HEAD/catalog/glyphs/"
+    private const val GLYPHS_URL = "https://raw.githubusercontent.com/Perinkpheral/perinkpheral-apps/HEAD/catalog/glyphs/"
     private val GLYPH_PACKS = listOf("latin", "cyrillic", "greek")
 
     /** The host the device window and the tools talk to while a simulator runs; null otherwise. */
