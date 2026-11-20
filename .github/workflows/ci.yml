@@ -29,8 +29,8 @@ jobs:
           fetch-depth: 0
       - uses: actions/checkout@v5
         with:
-          repository: Perinkpheral/perinkpheral
-          path: perinkpheral
+          repository: Perinkpheral/perinkpheral-os
+          path: perinkpheral-os
       - uses: actions/setup-java@v5
         with:
           distribution: temurin
@@ -57,7 +57,7 @@ jobs:
           echo "release=$release" >> "$GITHUB_OUTPUT"
           echo "last=$last" >> "$GITHUB_OUTPUT"
       - name: Build and test
-        run: ./gradlew --no-daemon -PperinkpheralPath=perinkpheral -PpluginVersion=${{ steps.version.outputs.build }} buildPlugin test
+        run: ./gradlew --no-daemon -PperinkpheralPath=perinkpheral-os -PpluginVersion=${{ steps.version.outputs.build }} buildPlugin test
       - uses: actions/upload-artifact@v4
         with:
           name: perinkpheral-clion-plugin

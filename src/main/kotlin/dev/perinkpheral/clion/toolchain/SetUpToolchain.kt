@@ -60,7 +60,7 @@ class SetUpToolchainTask(project: Project?) : Task.Backgroundable(project, "Sett
 }
 
 object Toolchain {
-    private const val SDK_REPOSITORY = "https://github.com/Perinkpheral/perinkpheral.git"
+    private const val SDK_REPOSITORY = "https://github.com/Perinkpheral/perinkpheral-os.git"
     private const val WASI_SDK_VERSION = "34"
 
     /** Runs a command to its end; throws with the output when it fails. */

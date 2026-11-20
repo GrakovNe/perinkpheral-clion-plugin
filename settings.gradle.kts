@@ -25,4 +25,4 @@ dependencyResolutionManagement {
 
 // The core - the build, the checks, the device and the simulator's network - is the SDK's own,
 // tools/core of the perinkpheral repository: a checkout beside this one, or -PperinkpheralPath.
-includeBuild((providers.gradleProperty("perinkpheralPath").orNull ?: "../perinkpheral") + "/tools/core")
+includeBuild((providers.gradleProperty("perinkpheralPath").orNull ?: "../perinkpheral-os") + "/tools/core")
