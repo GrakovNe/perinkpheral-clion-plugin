@@ -8,8 +8,8 @@ Includes toolchain setup, application builds, device access and a simulator.
 [Plugin documentation](https://perinkpheral.dev/sdk#clion) -
 [Developer documentation](https://perinkpheral.dev/sdk).
 Application guide (PDF):
-[English](https://github.com/Perinkpheral/perinkpheral/releases/latest/download/perinkpheral-app-guide.pdf),
-[Russian](https://github.com/Perinkpheral/perinkpheral/releases/latest/download/perinkpheral-app-guide.ru.pdf).
+[English](https://github.com/Perinkpheral/perinkpheral-os/releases/latest/download/perinkpheral-app-guide.pdf),
+[Russian](https://github.com/Perinkpheral/perinkpheral-os/releases/latest/download/perinkpheral-app-guide.ru.pdf).
 
 ## Requirements
 
@@ -22,7 +22,7 @@ stored separately for each application checkout.
 
 ## Build
 
-Requires Java 21 and a sibling `../perinkpheral` checkout for `tools/core`.
+Requires Java 21 and a sibling `../perinkpheral-os` checkout for `tools/core`.
 `-PperinkpheralPath=<checkout>` selects another checkout;
 `-PclionPath=<installation>` selects an installed CLion.
 
@@ -40,7 +40,7 @@ CI builds and tests every push. Each successful push to `main` releases the plug
 
 ## Related sources
 
-- [Firmware, SDK and shared Kotlin core](https://github.com/Perinkpheral/perinkpheral):
+- [Firmware, SDK and shared Kotlin core](https://github.com/Perinkpheral/perinkpheral-os):
   the Perinkpheral OS contract, application builder and device client used by this plugin.
 - [Application examples and tests](https://github.com/Perinkpheral/perinkpheral-apps).
 - [Portal source](https://github.com/Perinkpheral/perinkpheral-dev-portal): the public
